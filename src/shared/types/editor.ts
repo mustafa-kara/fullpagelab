@@ -1,0 +1,11 @@
+import type { ExportFormat } from './export';
+import type { BlobRef, Point, Rect, Size } from './primitives';
+
+export type ToolId = 'select' | 'arrow' | 'rect' | 'ellipse' | 'line' | 'freehand' | 'text' | 'highlight' | 'marker' | 'emoji' | 'image' | 'blur' | 'pixelate' | 'redact' | 'crop' | 'pan';
+export type AnnotationType = Exclude<ToolId, 'select' | 'pan'>;
+export interface AnnotationStyle { stroke: string; strokeWidth: number; strokeDash?: number[]; fill: string | 'none'; lineCap?: 'butt' | 'round' | 'square'; fontFamily?: string; fontSizePx?: number; fontWeight?: 400 | 600 | 700; fontStyle?: 'normal' | 'italic'; textAlign?: 'left' | 'center' | 'right'; textBackground?: string | 'none'; shadow?: boolean; arrowHead?: 'end' | 'start' | 'both' | 'none'; arrowHeadSize?: number; cornerRadius?: number; }
+export interface AnnotationBase { id: string; type: AnnotationType; rect: Rect; rotationDeg: number; opacity: number; locked: boolean; visible: boolean; name?: string; style: AnnotationStyle; createdAt: string; }
+export type Annotation = (AnnotationBase & { type: 'arrow' | 'line'; from: Point; to: Point }) | (AnnotationBase & { type: 'rect' | 'ellipse' | 'highlight' | 'crop' }) | (AnnotationBase & { type: 'freehand'; points: Point[]; smoothing: number }) | (AnnotationBase & { type: 'text'; text: string; autoSize: boolean }) | (AnnotationBase & { type: 'marker'; number: number; shape: 'circle' | 'square' }) | (AnnotationBase & { type: 'emoji'; emoji: string }) | (AnnotationBase & { type: 'image'; ref: BlobRef }) | (AnnotationBase & { type: 'blur'; radiusPx: number }) | (AnnotationBase & { type: 'pixelate'; blockPx: number }) | (AnnotationBase & { type: 'redact'; color: string });
+export interface EditorDocument { version: 1; captureId: string; base: { ref: BlobRef; size: Size }; canvas: { size: Size; background: string; cropRect?: Rect; rotation: 0 | 90 | 180 | 270; scale: number }; viewportOffset?: Point; zoom?: number; layers: Annotation[]; history: { undo: number; redo: number }; updatedAt: string; }
+export interface EditorSettings { toolDefaults: Partial<Record<ToolId, Partial<AnnotationStyle>>>; recentColors: string[]; shortcuts?: Record<string, string>; autosaveMs: number; }
+export interface EditorExport { format: ExportFormat; flatten: true; includeAnnotations: boolean; scale: number; }
