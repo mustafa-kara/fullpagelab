@@ -74,12 +74,6 @@ export interface ErrorInfo {
   at: IsoDate;
 }
 
-export interface CanvasLimits {
-  maxSide: number;
-  maxArea: number;
-  probedAt: IsoDate;
-}
-
 export type FeatureKey =
   | 'allTabs'
   | 'batch'
@@ -99,78 +93,4 @@ export interface PermissionStatus {
   granted: boolean;
   missing: { permissions: string[]; origins: string[] };
   rationaleKey: string;
-}
-
-export interface JobState {
-  jobId: Id;
-  phase: 'idle' | 'preparing' | 'countdown' | 'capturing' | 'stitching' | 'exporting' | 'done' | 'cancelled' | 'failed';
-  progress: { done: number; total: number; etaMs?: number };
-  startedAt: IsoDate;
-  updatedAt: IsoDate;
-  error?: ErrorInfo;
-}
-
-export interface JobProgress {
-  jobId: Id;
-  phase: JobState['phase'];
-  done: number;
-  total: number;
-  message?: string;
-  etaMs?: number;
-}
-
-export interface PageMetrics {
-  url: Url;
-  title: string;
-  origin: string;
-  viewport: Size;
-  document: Size;
-  scroll: Point;
-  dpr: number;
-  zoom: number;
-  hasHorizontalOverflow: boolean;
-  scrollingElement: 'document' | 'custom';
-  isRestricted: boolean;
-  direction: 'ltr' | 'rtl';
-  colorScheme: 'light' | 'dark';
-}
-
-export interface ScanOptions {
-  findScrollContainers: boolean;
-  findFixedElements: boolean;
-  findIframes: boolean;
-}
-
-export interface Settings {
-  schemaVersion: 1;
-  general: {
-    language: 'auto' | 'en' | 'tr';
-    theme: 'system' | 'light' | 'dark';
-    afterCapture: 'openResultTab' | 'openSidePanel' | 'downloadOnly' | 'clipboardOnly' | 'none';
-    showNotifications: boolean;
-    onboardingDone: boolean;
-  };
-  history: {
-    enabled: boolean;
-    maxItems: number;
-    maxBytes: number;
-    autoCleanup: 'oldest' | 'ask' | 'never';
-    keepOriginalsAfterEdit: boolean;
-    thumbnailWidth: number;
-    ocrAutoIndex: boolean;
-    recaptureCloseWindow: boolean;
-  };
-  privacy: {
-    telemetry: boolean;
-    crashReports: boolean;
-    embedMetadataDefault: boolean;
-    clearOnUninstallNotice: boolean;
-    storeIncognitoCaptures: boolean;
-    policyVersionSeen?: string;
-  };
-  advanced: {
-    debugLogging: boolean;
-    canvasLimits?: CanvasLimits;
-    experimental: { cdpBackend: boolean; avif: boolean; promptApiOcr: boolean };
-  };
 }

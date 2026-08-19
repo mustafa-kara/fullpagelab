@@ -1,5 +1,5 @@
+import type { PageMetrics } from '../shared/types/capture';
 import type { MessageMap, Msg, Reply } from '../shared/types/messages';
-import type { PageMetrics } from '../shared/types/primitives';
 
 const VERSION = '1';
 const marker = '__ssx_agent_v1';
@@ -22,8 +22,13 @@ function scan(): PageMetrics {
     zoom: 1,
     hasHorizontalOverflow: documentSize.width > viewport.width,
     scrollingElement: root === document.documentElement || root === document.body ? 'document' : 'custom',
+    scrollContainers: [],
+    fixedElements: [],
+    iframes: [],
+    lazyImages: document.images.length,
     isRestricted: false,
     direction: getComputedStyle(document.documentElement).direction === 'rtl' ? 'rtl' : 'ltr',
+    userAgent: navigator.userAgent,
     colorScheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   };
 }

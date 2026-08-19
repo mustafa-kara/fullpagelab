@@ -1,5 +1,6 @@
-import type { CanvasLimits, ErrorInfo, Id, JobProgress, JobState, PageMetrics, ScanOptions } from './primitives';
-import type { Settings } from './settings';
+import type { CanvasLimits, JobProgress, JobState, PageMetrics, ScanOptions } from './capture';
+import type { ErrorInfo, Id } from './primitives';
+import type { DeepPartial, Settings } from './settings';
 
 export type MessageMap = MsgMap;
 
@@ -17,7 +18,7 @@ export type Reply<K extends keyof MsgMap = keyof MsgMap> =
 
 export interface MsgMap {
   'settings.get': { req: void; res: Settings };
-  'settings.set': { req: { patch: Partial<Settings> }; res: Settings };
+  'settings.set': { req: { patch: DeepPartial<Settings> }; res: Settings };
   'capture.ping': { req: void; res: { ready: boolean; version: string } };
   'capture.listActive': { req: void; res: JobState[] };
   'job.progress': { req: JobProgress; res: void };

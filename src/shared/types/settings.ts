@@ -1,7 +1,7 @@
-import type { CaptureOptions } from './capture';
+import type { CanvasLimits, CaptureOptions } from './capture';
 import type { EditorSettings } from './editor';
 import type { ExportPlan } from './export';
-import type { CanvasLimits, IntegrationProvider } from './primitives';
+import type { IntegrationProvider } from './primitives';
 
 export interface IntegrationSettings { enabled: boolean; account?: unknown; defaults?: Record<string, unknown>; }
 export interface Settings { schemaVersion: 1; general: { language: 'auto' | 'en' | 'tr'; theme: 'system' | 'light' | 'dark'; afterCapture: 'openResultTab' | 'openSidePanel' | 'downloadOnly' | 'clipboardOnly' | 'none'; showNotifications: boolean; playSound: boolean; resultTabBehavior: 'newTab' | 'reuseTab'; onboardingDone: boolean; }; capture: CaptureOptions & { smartHideOverrides: Record<string, { disabled?: boolean; extra?: string[]; never?: string[] }> }; export: ExportPlan; history: { enabled: boolean; maxItems: number; maxBytes: number; autoCleanup: 'oldest' | 'ask' | 'never'; keepOriginalsAfterEdit: boolean; thumbnailWidth: number; ocrAutoIndex: boolean; recaptureCloseWindow: boolean; }; shortcuts: Record<string, string>; privacy: { telemetry: boolean; crashReports: boolean; embedMetadataDefault: boolean; clearOnUninstallNotice: boolean; storeIncognitoCaptures: boolean; policyVersionSeen?: string; }; integrations: { [provider in IntegrationProvider]?: IntegrationSettings } & { proxyUrl?: string }; api: { enabled: boolean; allowedExtensionIds: string[]; approvedOrigins: string[] }; editor: EditorSettings; presets: { defaultPresetId?: string }; advanced: { canvasLimits?: CanvasLimits; debugLogging: boolean; experimental: { cdpBackend: boolean; avif: boolean; promptApiOcr: boolean }; }; }

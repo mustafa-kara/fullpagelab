@@ -1,5 +1,5 @@
+import type { CanvasLimits } from '../shared/types/capture';
 import type { Msg, Reply } from '../shared/types/messages';
-import type { CanvasLimits } from '../shared/types/primitives';
 
 function probeLimits(): CanvasLimits {
   const canvas = document.createElement('canvas');

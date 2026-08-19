@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 import '../../ui/tokens.css';
 import { t } from '../../shared/i18n';
 import { sendMessage } from '../../shared/messages';
-import type { JobState } from '../../shared/types/primitives';
+import type { JobState } from '../../shared/types/capture';
 import type { Settings } from '../../shared/types/settings';
 
 const modes = [
