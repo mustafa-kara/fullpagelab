@@ -6,6 +6,17 @@ Tahminler "ideal mühendis-gün" (IMG) cinsindendir ve yalnızca göreli büyük
 
 ---
 
+## Güncel uygulama durumu
+
+Gerçekleşen uygulamanın kanonik ayrıntılı raporu [`docs/progress.md`](../progress.md) dosyasındadır.
+
+- M0 altyapı temelleri uygulanmış ve otomatik doğrulamalardan geçmiştir.
+- M1 devam etmektedir; temel Visible area ve Full page akışları çalışır durumdadır.
+- M1'in tam çıkış kriteri henüz karşılanmamıştır. Selection, scroll container, sticky/fixed yönetimi, tam export/history ve E2E/smoke kapsamı açık işlerdir.
+- Bu bölümdeki WP tablosu planı gösterir; WP'lerin gerçekleşme durumu için ilerleme raporuna bakılmalıdır.
+
+---
+
 ## Genel Definition of Done (her WP için)
 - [ ] Kod TypeScript strict, lint temiz, `pnpm build` iki varyantta (store/cdp) geçer.
 - [ ] İlgili unit testler yazıldı (lib'ler için ≥ %90 satır kapsama), E2E fixture'ı varsa eklendi (11).

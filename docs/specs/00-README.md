@@ -7,6 +7,10 @@ Bu klasör, FireShot ve GoFullPage benzeri bir **Chrome Manifest V3** uzantısı
 
 Hedef okuyucu: implementasyonu yapacak mühendis/AI ajanı. Dokümanlar, ek soru sormadan kodlamaya başlanabilecek kadar kesin olmaya çalışır; belirsiz kalan noktalar açıkça **"Karar:"** etiketiyle verilmiş varsayılan kararlar olarak yazılmıştır.
 
+## Uygulama durumu
+
+Gerçekleşen kod, doğrulama sonuçları, çalışan capture modları ve kalan M1 işleri [`docs/progress.md`](../progress.md) dosyasında tutulur. Bu README doküman haritasını ve normatif spec setini, [`12-roadmap-and-milestones.md`](12-roadmap-and-milestones.md) ise planlanan milestone kırılımını tanımlar.
+
 ---
 
 ## Doküman Haritası
