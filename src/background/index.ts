@@ -1,11 +1,13 @@
 import { defaultSettings } from '../shared/defaults';
 import { createId } from '../shared/ids';
 import { log } from '../shared/log';
-import { createError } from '../shared/messages';
-import type { CanvasLimits } from '../shared/types/capture';
+import { createError, createMessage, isReply } from '../shared/messages';
+import type { CaptureMode, CanvasLimits } from '../shared/types/capture';
 import type { MessageMap, Msg, Reply } from '../shared/types/messages';
 import { envelopeSchema } from '../shared/types/schemas';
 import type { DeepPartial, Settings } from '../shared/types/settings';
+import { createCaptureCoordinator } from './capture/coordinator';
+import { blobToDataUrl } from './capture/image';
 import { createHistoryService } from './history/service';
 import { createJobStateStore } from './job-state';
 import { recoverInterruptedJobs } from './lifecycle';
@@ -16,6 +18,55 @@ const gcAlarmName = 'ssx.daily-gc';
 const settingsStore = createSettingsStore();
 const jobStateStore = createJobStateStore();
 const historyService = createHistoryService();
+
+async function injectPageAgent(tabId: number): Promise<void> {
+  await chrome.scripting.executeScript({ target: { tabId }, files: ['content/page-agent.js'] });
+}
+
+function sendAgentMessage<K extends keyof MessageMap>(tabId: number, type: K, payload: MessageMap[K]['req']): Promise<MessageMap[K]['res']> {
+  const message = createMessage(type, payload, 'sw');
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response: Reply<K>) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      if (!isReply(response) || !response.ok) {
+        reject(new Error(response && !response.ok ? response.error.message : 'Invalid agent response.'));
+        return;
+      }
+      resolve(response.payload as MessageMap[K]['res']);
+    });
+  });
+}
+
+const captureCoordinator = createCaptureCoordinator({
+  jobs: jobStateStore,
+  platform: {
+    async queryActiveTab() {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id === undefined || tab.windowId === undefined) return undefined;
+      return { id: tab.id, windowId: tab.windowId, url: tab.url, title: tab.title };
+    },
+    captureVisibleTab(windowId) {
+      return chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
+    },
+    async scan(tabId) {
+      await injectPageAgent(tabId);
+      return sendAgentMessage(tabId, 'agent.scan', { findScrollContainers: false, findFixedElements: false, findIframes: false });
+    },
+    async scroll(tabId, point) {
+      const result = await sendAgentMessage(tabId, 'agent.scroll', point);
+      return result.actual;
+    },
+    async restore(tabId, point) {
+      await sendAgentMessage(tabId, 'agent.scroll', point);
+    },
+    async download(blob, filename) {
+      return chrome.downloads.download({ url: await blobToDataUrl(blob), filename, saveAs: false, conflictAction: 'uniquify' });
+    },
+  },
+});
 
 let settings: Settings = defaultSettings;
 let initialization: Promise<void> | undefined;
@@ -142,6 +193,20 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
           const activeJobs = await jobStateStore.listActive();
           sendResponse(reply(message, activeJobs));
           await maybeApplyUpdate();
+          return;
+        }
+        case 'capture.start': {
+          const payload = message.payload as { mode?: string };
+          if (!payload || typeof payload.mode !== 'string') throw new Error('Capture mode is required.');
+          const result = await captureCoordinator.start({ mode: payload.mode as CaptureMode, settings });
+          sendResponse(reply(message, result));
+          return;
+        }
+        case 'capture.cancel': {
+          const payload = message.payload as { jobId?: string };
+          if (!payload || typeof payload.jobId !== 'string') throw new Error('Job id is required.');
+          await captureCoordinator.cancel(payload.jobId);
+          sendResponse(reply(message, undefined));
           return;
         }
         case 'offscreen.probeLimits': {

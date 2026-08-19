@@ -1,5 +1,5 @@
-import type { CanvasLimits, JobProgress, JobState, PageMetrics, ScanOptions } from './capture';
-import type { ErrorInfo, Id } from './primitives';
+import type { CaptureMode, CanvasLimits, JobProgress, JobState, PageMetrics, ScanOptions } from './capture';
+import type { ErrorInfo, Id, Point } from './primitives';
 import type { DeepPartial, Settings } from './settings';
 
 export type MessageMap = MsgMap;
@@ -21,8 +21,11 @@ export interface MsgMap {
   'settings.set': { req: { patch: DeepPartial<Settings> }; res: Settings };
   'capture.ping': { req: void; res: { ready: boolean; version: string } };
   'capture.listActive': { req: void; res: JobState[] };
+  'capture.start': { req: { mode: CaptureMode }; res: { jobId: Id } };
+  'capture.cancel': { req: { jobId: Id }; res: void };
   'job.progress': { req: JobProgress; res: void };
   'agent.ping': { req: void; res: { ready: boolean; version: string } };
   'agent.scan': { req: ScanOptions; res: PageMetrics };
+  'agent.scroll': { req: Point; res: { actual: Point } };
   'offscreen.probeLimits': { req: void; res: CanvasLimits };
 }

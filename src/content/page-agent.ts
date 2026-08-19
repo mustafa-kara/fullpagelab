@@ -49,6 +49,12 @@ if (!agentWindow[marker]) {
       sendResponse(reply(raw, scan()));
       return true;
     }
+    if (raw.type === 'agent.scroll') {
+      const point = raw.payload as { x: number; y: number };
+      window.scrollTo({ left: point.x, top: point.y, behavior: 'instant' });
+      requestAnimationFrame(() => sendResponse(reply(raw, { actual: { x: window.scrollX, y: window.scrollY } })));
+      return true;
+    }
     return false;
   });
 }
