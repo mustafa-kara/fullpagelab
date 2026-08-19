@@ -1,0 +1,12 @@
+{
+  "appName": { "message": "PageShot" },
+  "appDesc": { "message": "Web'i yakala, belgeleyin ve takip edin." },
+  "cmdFullPage": { "message": "Tam sayfayı yakala" },
+  "cmdVisible": { "message": "Görünen alanı yakala" },
+  "cmdSelection": { "message": "Seçimi yakala" },
+  "cmdElement": { "message": "Öğeyi yakala" },
+  "privacy_tagline": { "message": "Ekran görüntüleri siz yüklemeyi seçmedikçe tarayıcınızdan asla çıkmaz." },
+  "privacy": { "message": "Ekran görüntüleri siz yüklemeyi seçmedikçe tarayıcınızdan asla çıkmaz." },
+  "error_E_PROTOCOL_body": { "message": "Mesaj sürümü desteklenmiyor." },
+  "error_E_UNKNOWN_body": { "message": "Bir sorun oluştu. Tekrar deneyin." }
+}

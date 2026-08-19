@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["vite.config.ts", "manifest.config.ts", "scripts", "test/**/*.ts"]
+}
