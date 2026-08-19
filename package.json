@@ -47,6 +47,7 @@
     "eslint-import-resolver-typescript": "3.7.0",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-no-unsanitized": "4.1.5",
+    "fake-indexeddb": "6.0.0",
     "happy-dom": "16.7.2",
     "prettier": "3.5.1",
     "tsx": "4.19.3",
