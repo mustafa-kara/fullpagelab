@@ -3,6 +3,7 @@ import type { CaptureMode, CaptureRequest, JobState, PageMetrics, ScrollPlan } f
 import type { Point, Rect } from '../../shared/types/primitives';
 import type { Settings } from '../../shared/types/settings';
 import { dataUrlToBlob, stitchVerticalTiles, type CaptureTile } from './image';
+import { createCaptureRateLimiter } from './rate-limiter';
 
 export { dataUrlToBlob } from './image';
 
@@ -31,6 +32,7 @@ export interface CaptureCoordinatorOptions {
   platform: CapturePlatform;
   jobs: CaptureJobStore;
   now?: () => string;
+  rateLimiter?: Pick<ReturnType<typeof createCaptureRateLimiter>, 'run'>;
 }
 
 export interface CaptureStartInput {
@@ -136,8 +138,12 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Capture failed.';
 }
 
-export function createCaptureCoordinator({ platform, jobs, now = () => new Date().toISOString() }: CaptureCoordinatorOptions) {
+export function createCaptureCoordinator({ platform, jobs, now = () => new Date().toISOString(), rateLimiter = createCaptureRateLimiter() }: CaptureCoordinatorOptions) {
   const cancelled = new Set<string>();
+
+  function captureVisibleTab(windowId: number): Promise<string> {
+    return rateLimiter.run(windowId, () => platform.captureVisibleTab(windowId));
+  }
 
   async function update(job: JobState, patch: Partial<JobState>): Promise<JobState> {
     const next = { ...job, ...patch, updatedAt: now() };
@@ -148,7 +154,7 @@ export function createCaptureCoordinator({ platform, jobs, now = () => new Date(
   async function runVisible(job: JobState): Promise<JobState> {
     let current = await update(job, { phase: 'capturing', log: [...job.log, 'Capturing the visible tab.'] });
     if (cancelled.has(current.jobId)) throw new Error('Capture cancelled.');
-    const dataUrl = await platform.captureVisibleTab(current.windowId);
+    const dataUrl = await captureVisibleTab(current.windowId);
     if (cancelled.has(current.jobId)) throw new Error('Capture cancelled.');
     current = await update(current, { phase: 'exporting', progress: { done: 0, total: 1 }, tilesWritten: 1 });
     await platform.download(dataUrlToBlob(dataUrl), captureFilename({ id: current.tabId, windowId: current.windowId, url: current.request.target.url }, current.request.mode));
@@ -166,7 +172,7 @@ export function createCaptureCoordinator({ platform, jobs, now = () => new Date(
       for (const step of plan.steps) {
         if (cancelled.has(current.jobId)) throw new Error('Capture cancelled.');
         const actual = await platform.scroll(current.tabId, step.scrollTo);
-        const dataUrl = await platform.captureVisibleTab(current.windowId);
+        const dataUrl = await captureVisibleTab(current.windowId);
         tiles.push({ dataUrl, actual, step });
         current = await update(current, { progress: { done: tiles.length, total: plan.steps.length }, tilesWritten: tiles.length });
       }
