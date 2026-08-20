@@ -8,12 +8,8 @@ import type { JobState } from '../../shared/types/capture';
 import type { Settings } from '../../shared/types/settings';
 
 const modes = [
-  ['fullPage', 'Full page'],
-  ['visible', 'Visible area'],
-  ['selection', 'Selection'],
-  ['element', 'Element'],
-  ['scrollContainer', 'Scrolling area'],
-  ['allTabs', 'All tabs'],
+  ['fullPage', 'ui.capture.mode.fullPage'],
+  ['visible', 'ui.capture.mode.visible'],
 ] as const;
 
 function Popup(): JSX.Element {
@@ -56,7 +52,7 @@ function Popup(): JSX.Element {
     {jobs.length > 0 && <div class="card" role="status">Capturing {jobs[0]?.progress.done ?? 0}/{jobs[0]?.progress.total ?? 0}</div>}
     {message && <div class="card" role="alert">{message}</div>}
     <div class="actions">
-      {modes.map(([mode, label]) => <button class="action" type="button" key={mode} aria-label={label} disabled={busy || !settings} onClick={() => void startCapture(mode)}>{label}</button>)}
+      {modes.map(([mode, label]) => <button class="action" type="button" key={mode} aria-label={t(label)} disabled={busy || !settings} onClick={() => void startCapture(mode)}>{t(label)}</button>)}
     </div>
     <div class="card muted">{t('privacy_tagline')}</div>
   </div>;

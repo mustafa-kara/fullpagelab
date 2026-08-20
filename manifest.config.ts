@@ -57,20 +57,9 @@ const manifest = {
     default_path: 'src/pages/sidepanel/index.html',
   },
   commands: {
-    'capture-full-page': {
-      suggested_key: { default: 'Alt+Shift+P' },
-      description: '__MSG_cmdFullPage__',
-    },
     'capture-visible': {
       suggested_key: { default: 'Alt+Shift+V' },
       description: '__MSG_cmdVisible__',
-    },
-    'capture-selection': {
-      suggested_key: { default: 'Alt+Shift+S' },
-      description: '__MSG_cmdSelection__',
-    },
-    'capture-element': {
-      description: '__MSG_cmdElement__',
     },
   },
   content_security_policy: {

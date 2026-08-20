@@ -9,6 +9,7 @@ import { captureRequestSchema, envelopeSchema } from '../shared/types/schemas';
 import type { DeepPartial, Settings } from '../shared/types/settings';
 import { createCaptureCoordinator } from './capture/coordinator';
 import { blobToDataUrl } from './capture/image';
+import { createCommandController } from './commands';
 import { createContextMenuController } from './context-menus';
 import { createExportPipeline } from './export/pipeline';
 import { createHistoryService } from './history/service';
@@ -173,6 +174,29 @@ const contextMenus = createContextMenuController({
 });
 
 contextMenus.register();
+
+const commands = createCommandController({
+  platform: {
+    addListener(listener) { chrome.commands.onCommand.addListener(listener); },
+  },
+  async onVisibleCapture() {
+    await init();
+    await captureCoordinator.startDetached({
+      request: {
+        mode: 'visible',
+        target: {},
+        options: structuredClone(settings.capture),
+        export: structuredClone(settings.export),
+        trigger: 'shortcut',
+      },
+    });
+  },
+  onError(error) {
+    log('error', 'command', error instanceof Error ? error.message : 'Command capture failed.');
+  },
+});
+
+commands.register();
 
 let initialization: Promise<void> | undefined;
 let updateAvailable = false;

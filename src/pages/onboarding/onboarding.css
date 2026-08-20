@@ -97,14 +97,12 @@ button { font: inherit; }
 .workflow-copy strong { color: var(--onboarding-ink); font-size: 13px; font-weight: 750; }
 .workflow-copy span { color: var(--onboarding-muted); font-size: 12px; line-height: 1.45; }
 
-.welcome-notes { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .9fr); gap: 10px; margin-top: 18px; }
-.shortcut-card, .pin-card { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--onboarding-line); border-radius: 9px; background: var(--onboarding-surface); }
+.welcome-notes { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+.pin-card { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--onboarding-line); border-radius: 9px; background: var(--onboarding-surface); }
 .utility-icon { width: 30px; height: 30px; border-radius: 7px; }
 .utility-copy { display: grid; gap: 4px; min-width: 0; }
 .utility-copy strong { color: var(--onboarding-ink); font-size: 11px; line-height: 1.35; }
 .utility-copy p { margin: 0; color: var(--onboarding-muted); font-size: 10px; line-height: 1.45; }
-.shortcut-keys { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-left: 8px; color: var(--onboarding-muted); font-size: 10px; }
-kbd { min-width: 27px; padding: 5px 5px; border: 1px solid var(--onboarding-line-strong); border-bottom-width: 2px; border-radius: 5px; color: var(--onboarding-ink-soft); background: #fafbfc; font-size: 10px; font-weight: 800; text-align: center; }
 
 .privacy-summary { display: flex; align-items: center; gap: 12px; margin-top: 33px; padding: 15px; border: 1px solid #c9e4d6; border-radius: 9px; background: var(--onboarding-green-soft); }
 .summary-icon { width: 39px; height: 39px; border-radius: 8px; color: var(--onboarding-green); background: #d5eee1; }
@@ -202,8 +200,6 @@ kbd { min-width: 27px; padding: 5px 5px; border: 1px solid var(--onboarding-line
   .step-heading h2 { font-size: 33px; }
   .step-heading p { font-size: 14px; }
   .welcome-notes, .privacy-list { grid-template-columns: 1fr; }
-  .shortcut-card { flex-wrap: wrap; }
-  .shortcut-keys { margin-left: 40px; }
   .privacy-summary { align-items: flex-start; flex-wrap: wrap; }
   .summary-status { width: 100%; margin-left: 51px; }
   .control-row { align-items: flex-start; flex-direction: column; }

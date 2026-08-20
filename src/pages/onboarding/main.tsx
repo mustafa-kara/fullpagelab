@@ -9,7 +9,7 @@ import '../../ui/tokens.css';
 import './onboarding.css';
 
 type StepIndex = 0 | 1 | 2;
-type IconName = 'arrow-left' | 'arrow-right' | 'browser' | 'check' | 'cloud-off' | 'command' | 'lock' | 'pin' | 'scan' | 'shield' | 'storage';
+type IconName = 'arrow-left' | 'arrow-right' | 'browser' | 'check' | 'cloud-off' | 'lock' | 'pin' | 'scan' | 'shield' | 'storage';
 
 const steps = [
   { number: '01', label: 'onboarding.step.welcome', meta: 'onboarding.step.welcomeMeta' },
@@ -25,7 +25,6 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }): JSX.Eleme
     case 'browser': return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 8h18" /><path d="M7 6h.01M10 6h.01M13 6h.01" /></svg>;
     case 'check': return <svg {...common}><path d="m5 12 4 4L19 6" /></svg>;
     case 'cloud-off': return <svg {...common}><path d="m2 2 20 20" /><path d="M7.5 7.5A6 6 0 0 1 18 10a4 4 0 0 1 .5 7.97" /><path d="M5.5 17.97A4 4 0 0 1 6 10.03" /><path d="M3 18h1" /><path d="M16 18h3" /></svg>;
-    case 'command': return <svg {...common}><path d="M18 2a4 4 0 1 0 0 8H6a4 4 0 1 0 0 8 4 4 0 0 0 0-8h12a4 4 0 1 0 0-8Z" /><path d="M6 10V6a4 4 0 1 0-4 0v12a4 4 0 1 0 4-4V6" /></svg>;
     case 'lock': return <svg {...common}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /><path d="M12 14v3" /></svg>;
     case 'pin': return <svg {...common}><path d="m15 4 5 5-3 1-3 4 1 3-1 1-4-4-4 1-1-1 4-4 1-3Z" /><path d="m5 19 5-5" /></svg>;
     case 'scan': return <svg {...common}><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" /><path d="M7 12h10" /></svg>;
@@ -77,12 +76,8 @@ function WelcomeStep(): JSX.Element {
       <WorkflowRow index="02" icon="scan" title={t('onboarding.feature.smart.title')} body={t('onboarding.feature.smart.body')} />
       <WorkflowRow index="03" icon="lock" title={t('onboarding.feature.private.title')} body={t('onboarding.feature.private.body')} />
     </div>
-    <div class="welcome-notes"><ShortcutCard /><PinCard /></div>
+    <div class="welcome-notes"><PinCard /></div>
   </div>;
-}
-
-function ShortcutCard(): JSX.Element {
-  return <div class="shortcut-card"><span class="utility-icon"><Icon name="command" size={19} /></span><div class="utility-copy"><span class="eyebrow">{t('onboarding.shortcut.eyebrow')}</span><strong>{t('onboarding.shortcut.title')}</strong><p>{t('onboarding.shortcut.body')}</p></div><span class="shortcut-keys"><kbd>Alt</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>P</kbd></span></div>;
 }
 
 function PinCard(): JSX.Element {
@@ -208,4 +203,4 @@ function Onboarding(): JSX.Element {
 
 if (document.getElementById('app')) render(<Onboarding />, document.getElementById('app')!);
 
-export { Onboarding, ShortcutCard };
+export { Onboarding };

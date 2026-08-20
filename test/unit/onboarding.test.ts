@@ -34,6 +34,9 @@ describe('onboarding page', () => {
 
     await vi.waitFor(() => expect(document.querySelector('[data-testid="onboarding-welcome"]')).not.toBeNull());
     expect(document.querySelector('.pin-card')).not.toBeNull();
+    expect(document.querySelector('.shortcut-card')).toBeNull();
+    expect(document.querySelector('kbd')).toBeNull();
+    expect(document.body.textContent).not.toContain('Alt + Shift + P');
     document.querySelector<HTMLButtonElement>('[data-testid="onboarding-next"]')?.click();
     await vi.waitFor(() => expect(document.querySelector('[data-testid="onboarding-privacy"]')).not.toBeNull());
     document.querySelector<HTMLButtonElement>('[data-testid="onboarding-next"]')?.click();
