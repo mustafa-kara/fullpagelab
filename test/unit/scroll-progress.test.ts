@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { assertAcknowledgedProgress } from '../../src/background/capture/scroll-progress';
 import { createVerticalPlan } from '../../src/background/capture/plan';
+import { assertAcknowledgedProgress } from '../../src/background/capture/scroll-progress';
 
 function plan() {
   return createVerticalPlan({
