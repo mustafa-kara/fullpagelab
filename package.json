@@ -1,13 +1,14 @@
 {
-  "name": "pageshot-extension",
+  "name": "fullpagelab",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build:store": "cross-env BUILD_VARIANT=store vite build",
-    "build:cdp": "cross-env BUILD_VARIANT=cdp vite build",
+    "build:content": "tsx scripts/build-content-agent.ts",
+    "build:store": "cross-env BUILD_VARIANT=store vite build && cross-env BUILD_VARIANT=store pnpm build:content",
+    "build:cdp": "cross-env BUILD_VARIANT=cdp vite build && cross-env BUILD_VARIANT=cdp pnpm build:content",
     "build": "pnpm build:store",
     "build:all": "pnpm build:store && pnpm build:cdp",
     "lint": "eslint .",

@@ -1,7 +1,7 @@
 import { release } from '../../shared/db/blob-ref';
 import { getOpfsBytes } from '../../shared/db/opfs';
 import { db } from '../../shared/db/schema';
-import type { CaptureRecord, CaptureRecordPatch, HistoryPage, HistoryQuery, StorageStats } from '../../shared/types/history';
+import type { CaptureFile, CaptureRecord, CaptureRecordPatch, HistoryPage, HistoryQuery, StorageStats } from '../../shared/types/history';
 import type { BlobRef } from '../../shared/types/primitives';
 
 function refs(record: CaptureRecord): BlobRef[] {
@@ -41,6 +41,13 @@ export function createHistoryService() {
     const record = await db.captures.get(id);
     if (!record) throw new Error(`Capture not found: ${id}`);
     const next = { ...record, ...patch, updatedAt: new Date().toISOString() };
+    await db.captures.put(next);
+    return next;
+  };
+  const addFile = async (id: string, file: CaptureFile): Promise<CaptureRecord> => {
+    const record = await db.captures.get(id);
+    if (!record) throw new Error(`Capture not found: ${id}`);
+    const next = { ...record, files: [...record.files, file], updatedAt: new Date().toISOString() };
     await db.captures.put(next);
     return next;
   };
@@ -85,5 +92,5 @@ export function createHistoryService() {
     const estimate = await navigator.storage.estimate();
     return { usageBytes: estimate.usage ?? 0, quotaBytes: estimate.quota ?? 0, captures: await db.captures.count(), blobs: await db.blobs.count(), opfsBytes: await getOpfsBytes(), persisted: await navigator.storage.persisted() };
   };
-  return { put, get, update, list, delete: deleteRecords, gc, stats };
+  return { put, get, update, addFile, list, delete: deleteRecords, gc, stats };
 }

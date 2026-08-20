@@ -29,13 +29,13 @@ function Popup(): JSX.Element {
     }).catch((error: unknown) => setMessage(error instanceof Error ? error.message : 'Unable to load extension state'));
   }, []);
 
-  const startCapture = async (mode: typeof modes[number][0], label: string): Promise<void> => {
+  const startCapture = async (mode: typeof modes[number][0]): Promise<void> => {
     setBusy(true);
     setMessage('');
     try {
       const result = await sendMessage('capture.start', { mode });
-      setMessage(`${label} downloaded.`);
       setJobs((current) => current.filter((job) => job.jobId !== result.jobId));
+      window.close();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Capture failed.');
     } finally {
@@ -44,12 +44,12 @@ function Popup(): JSX.Element {
   };
 
   return <div class="page">
-    <header class="header"><strong>PageShot</strong><span class="muted">{settings?.general.language === 'tr' ? 'Yakalama' : 'Capture'}</span></header>
+    <header class="header"><strong>FullPageLab</strong><span class="muted">{settings?.general.language === 'tr' ? 'Yakalama' : 'Capture'}</span></header>
     {busy && <div class="card" role="status">Capturing…</div>}
     {jobs.length > 0 && <div class="card" role="status">Capturing {jobs[0]?.progress.done ?? 0}/{jobs[0]?.progress.total ?? 0}</div>}
     {message && <div class="card" role="alert">{message}</div>}
     <div class="actions">
-      {modes.map(([mode, label]) => <button class="action" type="button" key={mode} aria-label={label} disabled={busy} onClick={() => void startCapture(mode, label)}>{label}</button>)}
+      {modes.map(([mode, label]) => <button class="action" type="button" key={mode} aria-label={label} disabled={busy} onClick={() => void startCapture(mode)}>{label}</button>)}
     </div>
     <div class="card muted">{t('privacy_tagline')}</div>
   </div>;

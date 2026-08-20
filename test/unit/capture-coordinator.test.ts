@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createCaptureCoordinator, createVerticalPlan, type CapturePlatform } from '../../src/background/capture/coordinator';
 import { defaultSettings } from '../../src/shared/defaults';
 import type { JobState } from '../../src/shared/types/capture';
+import type { CaptureRecord } from '../../src/shared/types/history';
 
 function createJobs() {
   const states: JobState[] = [];
@@ -17,21 +18,24 @@ function createJobs() {
 }
 
 describe('capture coordinator', () => {
-  it('captures the visible tab and downloads a PNG', async () => {
+  it('captures the visible tab without starting a download', async () => {
     const jobs = createJobs();
     const platform: CapturePlatform = {
       queryActiveTab: vi.fn(async () => ({ id: 7, windowId: 3, url: 'https://example.com/docs', title: 'Example docs' })),
       captureVisibleTab: vi.fn(async () => 'data:image/png;base64,AAAA'),
       download: vi.fn(async () => 11),
     };
-    const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-19T14:00:00.000Z' });
+    const saveResult = vi.fn(async () => ({ id: 'capture-1' } as CaptureRecord));
+    const coordinator = createCaptureCoordinator({ platform, jobs, resultService: { save: saveResult, get: vi.fn(async () => null) }, now: () => '2026-08-19T14:00:00.000Z' });
 
     const result = await coordinator.start({ mode: 'visible', settings: structuredClone(defaultSettings) });
 
     expect(result.jobId).toBeTruthy();
     expect(platform.captureVisibleTab).toHaveBeenCalledWith(3);
-    expect(platform.download).toHaveBeenCalledWith(expect.any(Blob), 'pageshot_example.com_visible.png');
+    expect(platform.download).not.toHaveBeenCalled();
+    expect(saveResult).toHaveBeenCalledOnce();
     expect(jobs.states.at(-1)?.phase).toBe('done');
+    expect(jobs.states.at(-1)?.captureId).toBe('capture-1');
     expect(jobs.states.at(-1)?.progress).toEqual({ done: 1, total: 1 });
   });
 

@@ -265,7 +265,6 @@ interface CaptureBackend {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.atlassian.net https://api.linear.app https://slack.com https://api.notion.com https://api.trello.com https://api.github.com https://www.googleapis.com"
   },
   "web_accessible_resources": [{ "resources": ["assets/fonts/*","assets/picker/*"], "matches": ["<all_urls>"] }],
-  "externally_connectable": { "matches": [] }  // public API açılınca kullanıcı tanımlı origin'ler eklenemez; bkz. 09 §11
 }
 ```
 **Notlar:**
@@ -273,6 +272,7 @@ interface CaptureBackend {
 - Cross-origin iframe içeriği `captureVisibleTab` ile zaten piksel olarak yakalanır; iframe **içinde scroll/prepare** gerekirse (`allFrames:true`) host izni gerekir → PermissionBroker bağlamsal ister (bkz. 03 §9).
 - `debugger` izni **opsiyonel izin olarak istenemez** (Chrome: `debugger`, `declarativeNetRequest`, `devtools`, `proxy` vb. optional olamaz). Manifest'e statik eklenirse kurulumda "Access the page debugger backend" + "Read and change all your data on all websites" uyarısı çıkar ve attach süresince tüm sekmelerde "… started debugging this browser" infobar'ı görünür (kapatılamaz; kullanıcı *Cancel* derse `onDetach: canceled_by_user`). Bu yüzden §7.3'teki build-varyant stratejisi uygulanır.
 - `externally_connectable.matches` manifest'te statik olmak zorunda; public API için yaklaşım 09 §11'de.
+- Store varyantında `externally_connectable` alanı boş bırakılmadığı için manifest'e eklenmez; public API origin'leri ayrıca build-time yapılandırılır.
 
 ### 7.2 PermissionBroker akışı
 1. Özellik tetiklenir → `requires(feature)` → eksik izin listesi.
@@ -331,7 +331,7 @@ Limitler (`Settings.limits` ile ayarlanabilir, varsayılanlar): `maxCaptureHeigh
 
 ### 10.2 Repo yapısı
 ```
-chrome-screenshot-extension/
+fullpagelab/
 ├─ specs/                         # bu dokümanlar
 ├─ manifest.config.ts             # CRXJS manifest üretimi (i18n, sürüm env'den)
 ├─ vite.config.ts

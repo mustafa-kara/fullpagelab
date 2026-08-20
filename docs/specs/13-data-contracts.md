@@ -431,7 +431,7 @@ export interface JobState {
   captureId?: Id;                        // done sonrası
   log: string[];                         // son 200 satır
 }
-export interface JobProgress { jobId: Id; phase: JobPhase; done: number; total: number; message?: string; etaMs?: Millis; }
+export interface JobProgress { jobId: Id; phase: JobPhase; done: number; total: number; message?: string; etaMs?: Millis; visible?: boolean; allowCancel?: boolean; }
 
 export interface ScrollPlan {
   root: 'document' | string;
@@ -442,6 +442,9 @@ export interface ScrollPlan {
   cols: number; rows: number;
   overlapCss: CssPx;                     // 0 (Karar: overlap yok; son satır/sütun 'offset' ile hizalanır)
   dpr: number; zoom: number;
+  warnings: string[];                    // limit/sticky/overflow uyarıları
+  stickyInsets?: { top: CssPx; bottom: CssPx; left: CssPx; right: CssPx };
+  scrollBounds?: Size;                   // seçim/element planlarında scroll root'un gerçek sınırı
 }
 export interface ScrollStep {
   index: number; row: number; col: number;

@@ -1,13 +1,27 @@
+import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crx } from '@crxjs/vite-plugin';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import manifest from './manifest.config';
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
 
+function fullPageLabBrandAssets(): Plugin {
+  return {
+    name: 'fullpagelab-brand-assets',
+    async generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'icons/fullpagelabicon.png',
+        source: await readFile(resolve(rootDir, 'src/img/fullpagelabicon.png')),
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [crx({ manifest })],
+  plugins: [fullPageLabBrandAssets(), crx({ manifest })],
   resolve: {
     alias: {
       '@': resolve(rootDir, 'src'),
@@ -19,7 +33,6 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        contentAgent: resolve(rootDir, 'src/content/page-agent.ts'),
         offscreen: resolve(rootDir, 'src/offscreen/offscreen.html'),
         sidepanel: resolve(rootDir, 'src/pages/sidepanel/index.html'),
         result: resolve(rootDir, 'src/pages/result/index.html'),

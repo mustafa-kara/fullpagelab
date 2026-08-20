@@ -218,6 +218,14 @@ Kurulumda (`runtime.onInstalled reason:'install'`) açılır; 3 adım, atlanabil
 2. **Gizlilik:** büyük metin: *Screenshots never leave your browser unless you choose to upload them.* + izin açıklaması (activeTab nedir) + `navigator.storage.persist()` isteği butonu.
 3. **Dene:** "Capture this page" butonu (onboarding sayfasının kendisini çeker) → result sayfası. `general.onboardingDone=true`.
 
+Uygulanan tasarım, kurulum sekmesini tam sayfa ve responsive bir tanıtım akışına dönüştürür. Sol rayda marka mesajı ve 3 adımlı ilerleme, sağ içerik alanında karşılama önizlemesi, gizlilik kartları ve ilk yakalama aksiyonu bulunur. Her adımda tek bir birincil CTA vardır; "Turu atla" da `general.onboardingDone=true` yazar ve tamamlanma ekranını gösterir.
+
+- Karşılama adımı: tam sayfa/akıllı/yerel özellik kartları, `Alt+Shift+P` kısayolu ve Chrome yapboz menüsünden sabitleme ipucu.
+- Gizlilik adımı: `privacy_tagline` metni, yerel işleme ve kullanıcı tetiklemeli izin açıklaması, `navigator.storage.persist()` butonu ve varsayılanı kapalı `privacy.telemetry` anahtarı.
+- Dene adımı: `settings.set` ile tamamlanmayı kaydeder, ardından `capture.start({ mode: 'fullPage' })` ile onboarding sayfasını yakalar; işlem sürerken düğme kilitlenir ve result sekmesi açılacağı bildirilir.
+- Responsive ve erişilebilirlik: 920 px altında ray yatay adıma döner, 620 px altında içerik tek kolona iner; klavye focus ring'leri, `aria-live`, anlamlı etiketler, minimum 44 px hedefler ve `prefers-reduced-motion` desteği vardır.
+- Metinler `public/_locales/en/messages.json` ve `public/_locales/tr/messages.json` içindeki `onboarding_*` anahtarlarından gelir; onboarding sayfası ayar diline göre `lang` niteliğini günceller.
+
 ---
 
 ## 10. Context Menu (`REQ-UI-140`)
@@ -240,7 +248,7 @@ Restricted sayfalarda `enabled:false` (visible hariç).
 
 ## 11. Sayfa-İçi Overlay'ler (Content Script, Shadow DOM) (`REQ-UI-150`…`158`)
 - Tüm overlay'ler `<ssx-root>` host elementinde **closed Shadow DOM**; `all: initial` reset; z-index `2147483647`; sayfa fontlarından bağımsız (`system-ui`); `prefers-color-scheme` izlenir.
-- **Progress overlay:** sağ üst 280×72 kart: ikon, faz metni ("Capturing… 12/40"), ince progress bar, ETA, `Cancel` (ve infinite'te `Stop`). Capture anında gizlenir (03 §13). `role="status"`, `aria-live="polite"`.
+- **Progress overlay:** sağ üst 280×72 kart: ikon, faz metni ("Capturing… 12/40"), ince progress bar, ETA, `Cancel` (ve infinite'te `Stop`). Capture anında gizlenir; capture çağrısından önce görünürlük değişikliğinin iki temiz compositor frame ile ekrana işlendiği doğrulanır (03 §13). `role="status"`, `aria-live="polite"`.
 - **Countdown overlay:** ekran ortasında 120 px daire, kalan saniye, "Press Esc to cancel"; 1 s'de bir azalır; son 1 s'de solar; capture öncesi tamamen kaldırılır.
 - **Selection overlay:** tam ekran yarı saydam karartma (`rgba(0,0,0,.35)`), seçim alanı şeffaf + 1 px beyaz/2 px mavi çerçeve, köşe handle'ları (P1.5: seçim sonrası ayarlama), boyut rozeti (`1200×640`), büyüteç yok; alt merkezde ipucu "Drag to select · Enter capture · Esc cancel".
 - **Element picker:** hover'da 2 px mavi outline + `rgba(0,122,255,.08)` dolgu, rozet `div#main.content · 1200×3400` (+ "scrollable ↕" etiketi), ipucu şeridi "Click to capture · ↑/↓ parent/child · Esc cancel". Scroll container modunda yalnızca scrollable'lar vurgulanır, diğerleri gri.

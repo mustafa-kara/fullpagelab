@@ -1,4 +1,4 @@
-# Chrome Screenshot Extension — Spesifikasyon Seti
+# FullPageLab — Spesifikasyon Seti
 
 > **Ürün sloganı:** *Capture, document and track the web.*
 > GoFullPage kalitesinde capture engine + FireShot seviyesinde batch/PDF + güçlü editör + history/recapture/diff/evidence özellikleri.

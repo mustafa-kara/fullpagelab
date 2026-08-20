@@ -26,7 +26,7 @@ export interface Rect {
 }
 
 export interface BlobRef {
-  store: 'idb' | 'opfs';
+  store: 'idb' | 'opfs' | 'session';
   key: string;
   mime: string;
   bytes: number;

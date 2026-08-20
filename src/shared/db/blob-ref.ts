@@ -19,6 +19,7 @@ export async function putBlob(blob: Blob, options: { preferOpfs?: boolean; path?
 
 export async function resolveBlob(ref: BlobRef): Promise<Blob> {
   if (ref.store === 'opfs') return getOpfsBlob(ref.key);
+  if (ref.store === 'session') throw new Error('Session blob must be resolved by the temporary result store.');
   const row = await db.blobs.get(ref.key);
   if (!row) throw new Error(`Blob not found: ${ref.key}`);
   return row.blob;
@@ -29,6 +30,7 @@ export async function retain(ref: BlobRef): Promise<void> {
 }
 
 export async function release(ref: BlobRef): Promise<void> {
+  if (ref.store === 'session') return;
   if (ref.store === 'opfs') {
     await deleteOpfsPath(ref.key);
     return;

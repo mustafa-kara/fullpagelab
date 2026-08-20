@@ -5,7 +5,7 @@ export type CaptureMode = 'fullPage' | 'visible' | 'selection' | 'element' | 'se
 export type CaptureTrigger = 'popup' | 'shortcut' | 'contextMenu' | 'sidePanel' | 'batch' | 'recapture' | 'api' | 'monitor';
 export type CaptureBackend = 'visibleTab' | 'debugger';
 
-export interface CaptureTarget { tabId?: number; windowId?: number; frameId?: number; selector?: string; selectorIndex?: number; rect?: Rect; url?: Url; tabIds?: number[]; }
+export interface CaptureTarget { tabId?: number; windowId?: number; frameId?: number; selector?: string; selectorIndex?: number; rect?: Rect; url?: Url; title?: string; tabIds?: number[]; }
 export interface SmartHideOptions { enabled: boolean; categories: Array<'cookieBanner' | 'modal' | 'chatWidget' | 'ad' | 'floatingWidget' | 'newsletterPopup' | 'stickyBar'>; customSelectors: string[]; mode: 'hide' | 'remove'; }
 export interface LazyLoadOptions { enabled: boolean; preScroll: boolean; preScrollStepCss: CssPx; preScrollDwellMs: Millis; forceEagerImages: boolean; waitImagesDecode: boolean; waitFonts: boolean; maxWaitMs: Millis; }
 export interface WaitConditions { fixedDelayMs?: Millis; networkIdle?: { idleMs: Millis; maxWaitMs: Millis; maxInflight?: number }; domQuiet?: { quietMs: Millis; maxWaitMs: Millis }; selectorVisible?: { selector: string; timeoutMs: Millis }; selectorHidden?: { selector: string; timeoutMs: Millis }; fontsReady?: { timeoutMs: Millis }; imagesLoaded?: { timeoutMs: Millis; inViewportOnly: boolean }; pageLoad?: 'domcontentloaded' | 'load' | 'none'; customJs?: never; }
@@ -22,14 +22,15 @@ export interface ScanOptions { findScrollContainers: boolean; findFixedElements:
 export interface PreparePlan { hideScrollbars: boolean; freezeAnimations: boolean; pauseMedia: boolean; smartHide: SmartHideOptions; lazyLoad: LazyLoadOptions; fixedStrategy: 'none' | 'hideAfterFirst' | 'hideAll' | 'absolutize'; fixedTargets?: string[]; scrollContainerSelector?: string; overlay: { showProgress: boolean; allowCancel: boolean; allowStop: boolean }; restoreScroll: boolean; }
 export interface PreparedState { hiddenSelectors: string[]; removedScrollbars: boolean; pausedMedia: number; eagerizedImages: number; smartHidden: Array<{ selector: string; category: string }>; scrollRoot: 'document' | string; effectiveDocument: Size; }
 export interface ScrollCommand { stepIndex: number; x: CssPx; y: CssPx; afterFirstTile: boolean; settleMs: Millis; wait?: WaitConditions; }
+export interface AgentScrollRequest { point: Point; stepIndex?: number; totalSteps?: number; settleMs?: Millis; }
 export interface ScrollAck { stepIndex: number; actual: Point; documentNow: Size; hiddenApplied: boolean; elapsedMs: Millis; }
 export interface PickerOptions { mode: 'element' | 'scrollContainer' | 'selection'; highlightColor?: string; showInfoBadge: boolean; allowParentNavigation: boolean; onlyScrollable?: boolean; }
 export type PickerEvent = { kind: 'hover'; info: ElementInfo } | { kind: 'picked'; info: ElementInfo } | { kind: 'selected'; rect: Rect } | { kind: 'cancelled' };
 export interface ScrollStep { index: number; row: number; col: number; scrollTo: Point; placeAt: Point; cropFromViewport: Rect; }
-export interface ScrollPlan { root: 'document' | string; viewport: Size; content: Size; origin: Point; steps: ScrollStep[]; cols: number; rows: number; overlapCss: CssPx; dpr: number; zoom: number; }
+export interface ScrollPlan { root: 'document' | string; viewport: Size; content: Size; origin: Point; steps: ScrollStep[]; cols: number; rows: number; overlapCss: CssPx; dpr: number; zoom: number; warnings: string[]; stickyInsets?: { top: CssPx; bottom: CssPx; left: CssPx; right: CssPx }; scrollBounds?: Size; }
 export type JobPhase = 'idle' | 'preparing' | 'countdown' | 'capturing' | 'stitching' | 'exporting' | 'done' | 'cancelled' | 'failed';
 export interface JobState { jobId: Id; request: CaptureRequest; tabId: number; windowId: number; backend: CaptureBackend; phase: JobPhase; startedAt: string; updatedAt: string; finishedAt?: string; progress: { done: number; total: number; etaMs?: Millis }; metrics?: PageMetrics; plan?: ScrollPlan; tilesWritten: number; error?: ErrorInfo; captureId?: Id; log: string[]; }
-export interface JobProgress { jobId: Id; phase: JobPhase; done: number; total: number; message?: string; etaMs?: Millis; }
+export interface JobProgress { jobId: Id; phase: JobPhase; done: number; total: number; message?: string; etaMs?: Millis; visible?: boolean; allowCancel?: boolean; }
 export interface TileRecord { id: string; jobId: Id; index: number; blob: Blob; step: ScrollStep; capturedAt: string; size: Size; }
 export interface CaptureResultSummary { captureId: Id; size: Size; cssSize: Size; strips: number; durationMs: Millis; backend: CaptureBackend; warnings: string[]; }
 export interface CanvasLimits { maxSide: number; maxArea: number; probedAt: string; }

@@ -1,4 +1,4 @@
-# Chrome Screenshot Extension – Özellik Gereksinimleri
+# FullPageLab – Özellik Gereksinimleri
 
 Bu doküman, FireShot ve GoFullPage benzeri bir Chrome extension geliştirmek için önerilen özellik setini içerir.
 

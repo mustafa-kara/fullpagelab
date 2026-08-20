@@ -2,15 +2,19 @@ import { defaultSettings } from '../shared/defaults';
 import { createId } from '../shared/ids';
 import { log } from '../shared/log';
 import { createError, createMessage, isReply } from '../shared/messages';
-import type { CaptureMode, CanvasLimits } from '../shared/types/capture';
+import type { CaptureMode, CanvasLimits, JobProgress, PageMetrics, PreparePlan, PreparedState } from '../shared/types/capture';
 import type { MessageMap, Msg, Reply } from '../shared/types/messages';
 import { envelopeSchema } from '../shared/types/schemas';
 import type { DeepPartial, Settings } from '../shared/types/settings';
 import { createCaptureCoordinator } from './capture/coordinator';
 import { blobToDataUrl } from './capture/image';
+import { createExportPipeline } from './export/pipeline';
 import { createHistoryService } from './history/service';
 import { createJobStateStore } from './job-state';
 import { recoverInterruptedJobs } from './lifecycle';
+import { createResultTabOpener } from './result/opener';
+import { createCaptureResultService } from './result/service';
+import { createTemporaryResultStore } from './result/temporary-store';
 import { createSettingsStore } from './settings/store';
 
 const settingsKey = 'settings';
@@ -18,6 +22,26 @@ const gcAlarmName = 'ssx.daily-gc';
 const settingsStore = createSettingsStore();
 const jobStateStore = createJobStateStore();
 const historyService = createHistoryService();
+const temporaryResultStore = createTemporaryResultStore();
+let settings: Settings = defaultSettings;
+const openResultTab = createResultTabOpener({
+  platform: {
+    baseUrl: () => chrome.runtime.getURL('src/pages/result/index.html'),
+    async query(urlPattern) { return chrome.tabs.query({ url: urlPattern }); },
+    async update(tabId, url) { await chrome.tabs.update(tabId, { active: true, url }); },
+    async create(url) { await chrome.tabs.create({ url, active: true }); },
+  },
+  behavior: () => settings.general.resultTabBehavior,
+  onError(error) { log('warn', 'result', error instanceof Error ? error.message : 'Unable to open result tab.'); },
+});
+
+const captureResultService = createCaptureResultService({
+  history: historyService,
+  temporary: temporaryResultStore,
+  settings: () => settings,
+  appVersion: '0.1.0',
+});
+const exportPipeline = createExportPipeline({ history: historyService, temporary: temporaryResultStore });
 
 async function injectPageAgent(tabId: number): Promise<void> {
   await chrome.scripting.executeScript({ target: { tabId }, files: ['content/page-agent.js'] });
@@ -42,25 +66,61 @@ function sendAgentMessage<K extends keyof MessageMap>(tabId: number, type: K, pa
 
 const captureCoordinator = createCaptureCoordinator({
   jobs: jobStateStore,
+  resultService: captureResultService,
+  onJobUpdate(job) {
+    if (job.phase === 'done' && job.captureId) void openResultTab(job.captureId);
+  },
   platform: {
     async queryActiveTab() {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id === undefined || tab.windowId === undefined) return undefined;
-      return { id: tab.id, windowId: tab.windowId, url: tab.url, title: tab.title };
+      let windowState: string | undefined;
+      let windowVisible: boolean | undefined;
+      try {
+        const windowInfo = await chrome.windows.get(tab.windowId);
+        windowState = windowInfo.state;
+        windowVisible = windowInfo.state !== 'minimized';
+      } catch {
+        // Window details may be unavailable without the optional tabs/windows context.
+      }
+      return {
+        id: tab.id,
+        windowId: tab.windowId,
+        url: tab.url,
+        title: tab.title,
+        active: tab.active,
+        discarded: tab.discarded,
+        status: tab.status === 'loading' || tab.status === 'complete' || tab.status === 'unloaded' ? tab.status : undefined,
+        windowState,
+        windowVisible,
+      };
+    },
+    async focusTab(tabId, windowId) {
+      await chrome.windows.update(windowId, { focused: true });
+      await chrome.tabs.update(tabId, { active: true });
     },
     captureVisibleTab(windowId) {
       return chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
     },
-    async scan(tabId) {
+    async scan(tabId, options = { findScrollContainers: true, findFixedElements: true, findIframes: true }) {
       await injectPageAgent(tabId);
-      return sendAgentMessage(tabId, 'agent.scan', { findScrollContainers: false, findFixedElements: false, findIframes: false });
+      return sendAgentMessage(tabId, 'agent.scan', options);
     },
-    async scroll(tabId, point) {
-      const result = await sendAgentMessage(tabId, 'agent.scroll', point);
-      return result.actual;
+    async prepare(tabId, plan: PreparePlan, metrics: PageMetrics): Promise<PreparedState> {
+      await injectPageAgent(tabId);
+      return sendAgentMessage(tabId, 'agent.prepare', { plan, metrics });
+    },
+    async progress(tabId, update: JobProgress) {
+      await injectPageAgent(tabId);
+      await sendAgentMessage(tabId, 'agent.progress', update);
+    },
+    async scroll(tabId, point, meta) {
+      const result = await sendAgentMessage(tabId, 'agent.scroll', { point, stepIndex: meta?.stepIndex ?? 0, totalSteps: meta?.totalSteps ?? 1, settleMs: meta?.settleMs ?? 0 });
+      return result;
     },
     async restore(tabId, point) {
-      await sendAgentMessage(tabId, 'agent.scroll', point);
+      await sendAgentMessage(tabId, 'agent.restore', undefined);
+      await sendAgentMessage(tabId, 'agent.scroll', { point, stepIndex: 0, totalSteps: 1, settleMs: 0 });
     },
     async download(blob, filename) {
       return chrome.downloads.download({ url: await blobToDataUrl(blob), filename, saveAs: false, conflictAction: 'uniquify' });
@@ -68,7 +128,6 @@ const captureCoordinator = createCaptureCoordinator({
   },
 });
 
-let settings: Settings = defaultSettings;
 let initialization: Promise<void> | undefined;
 let updateAvailable = false;
 
@@ -198,7 +257,7 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
         case 'capture.start': {
           const payload = message.payload as { mode?: string };
           if (!payload || typeof payload.mode !== 'string') throw new Error('Capture mode is required.');
-          const result = await captureCoordinator.start({ mode: payload.mode as CaptureMode, settings });
+          const result = await captureCoordinator.startDetached({ mode: payload.mode as CaptureMode, settings });
           sendResponse(reply(message, result));
           return;
         }
@@ -207,6 +266,22 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
           if (!payload || typeof payload.jobId !== 'string') throw new Error('Job id is required.');
           await captureCoordinator.cancel(payload.jobId);
           sendResponse(reply(message, undefined));
+          return;
+        }
+        case 'history.get': {
+          const payload = message.payload as { id?: string };
+          if (!payload || typeof payload.id !== 'string') throw new Error('Capture id is required.');
+          sendResponse(reply(message, await captureResultService.get(payload.id)));
+          return;
+        }
+        case 'result.get': {
+          const payload = message.payload as { id?: string };
+          if (!payload || typeof payload.id !== 'string') throw new Error('Capture id is required.');
+          sendResponse(reply(message, await temporaryResultStore.payload(payload.id)));
+          return;
+        }
+        case 'export.request': {
+          sendResponse(reply(message, await exportPipeline.run(message.payload as MessageMap['export.request']['req'])));
           return;
         }
         case 'offscreen.probeLimits': {

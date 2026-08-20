@@ -31,8 +31,8 @@ export interface CaptureTile {
 export async function stitchVerticalTiles(tiles: CaptureTile[], plan: ScrollPlan): Promise<Blob> {
   if (tiles.length === 0) throw new Error('No capture tiles were produced.');
   const firstBitmap = await createImageBitmap(dataUrlToBlob(tiles[0]?.dataUrl ?? ''));
-  const scaleX = firstBitmap.width / Math.max(1, plan.viewport.width);
-  const scaleY = firstBitmap.height / Math.max(1, plan.viewport.height);
+  const sourceScaleX = firstBitmap.width / Math.max(1, plan.viewport.width * plan.dpr);
+  const sourceScaleY = firstBitmap.height / Math.max(1, plan.viewport.height * plan.dpr);
   const outputWidth = Math.max(1, Math.ceil(plan.content.width * plan.dpr));
   const outputHeight = Math.max(1, Math.ceil(plan.content.height * plan.dpr));
   const canvas = new OffscreenCanvas(outputWidth, outputHeight);
@@ -45,14 +45,14 @@ export async function stitchVerticalTiles(tiles: CaptureTile[], plan: ScrollPlan
   for (const [index, tile] of tiles.entries()) {
     const bitmap = index === 0 ? firstBitmap : await createImageBitmap(dataUrlToBlob(tile.dataUrl));
     const crop = tile.step.cropFromViewport;
-    const sourceX = Math.round(crop.x * scaleX);
-    const sourceY = Math.round(crop.y * scaleY);
-    const sourceWidth = Math.max(1, Math.min(bitmap.width - sourceX, Math.round(crop.width * scaleX)));
-    const sourceHeight = Math.max(1, Math.min(bitmap.height - sourceY, Math.round(crop.height * scaleY)));
-    const destinationX = Math.round(tile.step.placeAt.x * plan.dpr);
-    const destinationY = Math.round(tile.step.placeAt.y * plan.dpr);
-    const destinationWidth = Math.round(crop.width * plan.dpr);
-    const destinationHeight = Math.round(crop.height * plan.dpr);
+    const sourceX = Math.round(crop.x * sourceScaleX);
+    const sourceY = Math.round(crop.y * sourceScaleY);
+    const sourceWidth = Math.max(1, Math.min(bitmap.width - sourceX, Math.round(crop.width * sourceScaleX)));
+    const sourceHeight = Math.max(1, Math.min(bitmap.height - sourceY, Math.round(crop.height * sourceScaleY)));
+    const destinationX = Math.round(tile.step.placeAt.x);
+    const destinationY = Math.round(tile.step.placeAt.y);
+    const destinationWidth = Math.round(crop.width);
+    const destinationHeight = Math.round(crop.height);
     context.drawImage(bitmap, sourceX, sourceY, sourceWidth, sourceHeight, destinationX, destinationY, destinationWidth, destinationHeight);
     if (index !== 0) bitmap.close();
   }

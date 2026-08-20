@@ -38,13 +38,19 @@ const manifest = {
     service_worker: 'src/background/index.ts',
     type: 'module',
   },
+  icons: {
+    16: 'icons/fullpagelabicon.png',
+    32: 'icons/fullpagelabicon.png',
+    48: 'icons/fullpagelabicon.png',
+    128: 'icons/fullpagelabicon.png',
+  },
   action: {
     default_popup: 'src/pages/popup/index.html',
     default_icon: {
-      16: 'icons/icon.svg',
-      32: 'icons/icon.svg',
-      48: 'icons/icon.svg',
-      128: 'icons/icon.svg',
+      16: 'icons/fullpagelabicon.png',
+      32: 'icons/fullpagelabicon.png',
+      48: 'icons/fullpagelabicon.png',
+      128: 'icons/fullpagelabicon.png',
     },
   },
   side_panel: {
@@ -77,7 +83,6 @@ const manifest = {
       use_dynamic_url: true,
     },
   ],
-  externally_connectable: { matches: [] as string[] },
   incognito: 'spanning',
 };
 

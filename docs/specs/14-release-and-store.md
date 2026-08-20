@@ -10,7 +10,7 @@
 
 | Alan | Değer / kural |
 |---|---|
-| Ad | `__MSG_appName__` — öneri: **"PageShot — Full Page Screenshot, PDF & History"** (≤ 45 karakter; marka adı ürün sahibi tarafından kesinleştirilir; kod adı `ssx`) |
+| Ad | `__MSG_appName__` — öneri: **"FullPageLab — Full Page Screenshot, PDF & History"** (≤ 45 karakter; marka adı ürün sahibi tarafından kesinleştirilir; kod adı `ssx`) |
 | Kısa açıklama (≤ 132) | "Capture full pages, scrolling areas and elements. Export PNG/JPG/PDF, annotate, keep a local history. Screenshots never leave your browser." |
 | Tek-amaç beyanı | "Capturing screenshots of web pages (full page, visible area, selection, element) and exporting/annotating/organizing them locally." |
 | Kategori | Productivity → Tools |
@@ -19,13 +19,14 @@
 | Küçük promo | **440×280** |
 | Marquee promo | **1400×560** (opsiyonel, featured için) |
 | İkon | 128×128 PNG (store), manifestte 16/32/48/128 |
+| Kaynak marka varlıkları | `src/img/fullpagelabicon.png` uzantı ikonu için; `src/img/fullpagelabstore.png` mağaza/listing görseli için |
 | Web sitesi / destek URL | `https://<domain>/`, `https://<domain>/support` |
 | Gizlilik politikası URL | `https://<domain>/privacy` (zorunlu — veri kullanımı beyanı için) |
 | Detaylı açıklama | Şablon aşağıda |
 
 **Açıklama şablonu (EN, `store/listing/en.md`):**
 ```
-PageShot captures the entire web page in one click — including long pages, sticky headers, scrolling panels (chat, dashboards, Gmail) and iframes — and saves it as PNG, JPG or PDF.
+FullPageLab captures the entire web page in one click — including long pages, sticky headers, scrolling panels (chat, dashboards, Gmail) and iframes — and saves it as PNG, JPG or PDF.
 
 ✔ Full page, visible area, selected area, element or CSS selector
 ✔ Handles sticky headers/footers, lazy-loaded images and infinite scroll
@@ -116,7 +117,7 @@ Tüm özellikler "web sayfası ekran görüntüsü almak ve bu görüntüleri d�
 - `CHANGELOG.md` Keep-a-Changelog; `conventional commits` → `changesets`/`release-please` ile otomatik taslak; "What's new" store metni changelog'dan özetlenir.
 - Şema versiyonları ayrı: `Settings.schemaVersion`, Dexie DB version; her artış changelog'da "Migration" başlığı.
 - Dal stratejisi: `main` (her zaman yayınlanabilir), `release/x.y` hotfix dalları, tag `v1.4.2`.
-- Önizleme kanalı: Web Store "unlisted" ikinci listing (`PageShot Beta`, ayrı ID) haftalık build; beta kullanıcıları Options'ta "beta" rozeti görür (`REQ-REL-064`).
+- Önizleme kanalı: Web Store "unlisted" ikinci listing (`FullPageLab Beta`, ayrı ID) haftalık build; beta kullanıcıları Options'ta "beta" rozeti görür (`REQ-REL-064`).
 
 ---
 

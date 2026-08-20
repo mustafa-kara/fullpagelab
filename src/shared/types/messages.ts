@@ -1,5 +1,7 @@
-import type { CaptureMode, CanvasLimits, JobProgress, JobState, PageMetrics, ScanOptions } from './capture';
-import type { ErrorInfo, Id, Point } from './primitives';
+import type { AgentScrollRequest, CaptureMode, CanvasLimits, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions } from './capture';
+import type { ExportRequest, ExportResult } from './export';
+import type { CaptureRecord, TemporaryResultPayload } from './history';
+import type { ErrorInfo, Id, Point, Size } from './primitives';
 import type { DeepPartial, Settings } from './settings';
 
 export type MessageMap = MsgMap;
@@ -23,9 +25,16 @@ export interface MsgMap {
   'capture.listActive': { req: void; res: JobState[] };
   'capture.start': { req: { mode: CaptureMode }; res: { jobId: Id } };
   'capture.cancel': { req: { jobId: Id }; res: void };
+  'history.get': { req: { id: Id }; res: CaptureRecord | null };
+  'result.get': { req: { id: Id }; res: TemporaryResultPayload | null };
+  'export.request': { req: ExportRequest; res: ExportResult };
+  'export.copy': { req: { captureId: Id; stripIndex?: number }; res: { copiedAs: 'png' } };
   'job.progress': { req: JobProgress; res: void };
   'agent.ping': { req: void; res: { ready: boolean; version: string } };
   'agent.scan': { req: ScanOptions; res: PageMetrics };
-  'agent.scroll': { req: Point; res: { actual: Point } };
+  'agent.scroll': { req: AgentScrollRequest; res: { actual: Point; documentNow: Size; elapsedMs: number } };
+  'agent.prepare': { req: { plan: PreparePlan; metrics: PageMetrics }; res: PreparedState };
+  'agent.restore': { req: void; res: { restored: true } };
+  'agent.progress': { req: JobProgress; res: void };
   'offscreen.probeLimits': { req: void; res: CanvasLimits };
 }
