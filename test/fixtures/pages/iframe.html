@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aynı Kaynaklı Iframe</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 1200px; }
+      html { scrollbar-color: #ff00ff #e2e8f0; }
+      ::-webkit-scrollbar { width: 16px; }
+      ::-webkit-scrollbar-track { background: #e2e8f0; }
+      ::-webkit-scrollbar-thumb { background: #ff00ff; }
+      body { padding: 64px; background: #dcfce7; color: #172033; font: 700 24px/1.3 Arial, sans-serif; }
+      h1 { width: 800px; margin: 0 0 32px; }
+      iframe { display: block; width: 800px; height: 720px; border: 12px solid #172033; background: #ffffff; }
+    </style>
+  </head>
+  <body>
+    <h1>Ana belge: aynı kaynaklı alt çerçeve</h1>
+    <iframe src="/frame-child.html" title="Aynı kaynaklı fixture alt çerçevesi"></iframe>
+  </body>
+</html>
