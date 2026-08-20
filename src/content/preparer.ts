@@ -32,12 +32,28 @@ export function createPreparePlan(options: CaptureOptions, metrics: PageMetrics)
   };
 }
 
-function addStyle(restorer: Restorer, cssText: string, id: string): void {
-  const style = document.createElement('style');
+const scrollbarCss = 'html, body, * { scrollbar-width: none !important; } html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }';
+
+function addDocumentStyle(restorer: Restorer, owner: Document, cssText: string, id: string): void {
+  const root = owner.documentElement;
+  if (!root) return;
+  const style = owner.createElement('style');
   style.dataset.fullpagelabPreparation = id;
   style.textContent = cssText;
-  document.documentElement.append(style);
+  root.append(style);
   restorer.register(() => style.remove());
+}
+
+function prepareScrollbarDocuments(restorer: Restorer, owner: Document): void {
+  addDocumentStyle(restorer, owner, scrollbarCss, 'scrollbars');
+  for (const frame of Array.from(owner.querySelectorAll('iframe'))) {
+    try {
+      const child = frame.contentDocument;
+      if (child?.documentElement) prepareScrollbarDocuments(restorer, child);
+    } catch {
+      // Cross-origin frames remain unchanged without an optional host permission.
+    }
+  }
 }
 
 function rememberStyle(restorer: Restorer, element: HTMLElement): void {
@@ -153,8 +169,8 @@ async function preScrollForLazyContent(plan: PreparePlan, metrics: PageMetrics):
 export async function preparePage(plan: PreparePlan, metrics: PageMetrics): Promise<PagePreparation> {
   const restorer = new Restorer();
   const hiddenSelectors: string[] = [];
-  if (plan.hideScrollbars) addStyle(restorer, 'html, body, * { scrollbar-width: none !important; } html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { display: none !important; }', 'scrollbars');
-  if (plan.freezeAnimations) addStyle(restorer, '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; scroll-behavior: auto !important; scroll-snap-type: none !important; } html, body { overflow-anchor: none !important; }', 'motion');
+  if (plan.hideScrollbars) prepareScrollbarDocuments(restorer, document);
+  if (plan.freezeAnimations) addDocumentStyle(restorer, document, '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; scroll-behavior: auto !important; scroll-snap-type: none !important; } html, body { overflow-anchor: none !important; }', 'motion');
   const eagerizedImages = plan.lazyLoad.forceEagerImages ? prepareImages(restorer) : 0;
   const pausedMedia = plan.pauseMedia ? prepareMedia(restorer) : 0;
   const fixed = createFixedElementController(metrics.fixedElements, plan.fixedStrategy);

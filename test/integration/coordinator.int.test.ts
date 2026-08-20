@@ -31,6 +31,62 @@ function metrics(): PageMetrics {
 }
 
 describe('content preparation and progress integration', () => {
+  it('hides scrollbars in the top document and accessible same-origin frames, then restores them', async () => {
+    document.body.innerHTML = '<div style="height: 2000px; overflow: auto">Scrollable content</div><iframe></iframe>';
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+    const frameDocument = frame?.contentDocument;
+    if (!frameDocument?.documentElement) throw new Error('Expected an accessible iframe document.');
+    frameDocument.body.innerHTML = '<div style="height: 2000px; overflow: auto">Frame content</div><iframe></iframe>';
+    const nestedFrameDocument = frameDocument.querySelector<HTMLIFrameElement>('iframe')?.contentDocument;
+    if (!nestedFrameDocument?.documentElement) throw new Error('Expected an accessible nested iframe document.');
+    nestedFrameDocument.body.innerHTML = '<div style="height: 2000px; overflow: auto">Nested frame content</div>';
+
+    const options = structuredClone(defaultSettings.capture);
+    options.lazyLoad.forceEagerImages = false;
+    options.lazyLoad.waitImagesDecode = false;
+    options.lazyLoad.waitFonts = false;
+    options.pauseMedia = false;
+    const preparation = await preparePage(createPreparePlan(options, metrics()), metrics());
+
+    const topStyle = document.querySelector<HTMLStyleElement>('style[data-fullpagelab-preparation="scrollbars"]');
+    const frameStyle = frameDocument.querySelector<HTMLStyleElement>('style[data-fullpagelab-preparation="scrollbars"]');
+    const nestedFrameStyle = nestedFrameDocument.querySelector<HTMLStyleElement>('style[data-fullpagelab-preparation="scrollbars"]');
+    for (const style of [topStyle, frameStyle, nestedFrameStyle]) {
+      expect(style).not.toBeNull();
+      expect(style?.textContent).toContain('scrollbar-width: none');
+      expect(style?.textContent).toContain('width: 0');
+      expect(style?.textContent).toContain('height: 0');
+    }
+
+    await preparation.restore();
+    expect(document.querySelector('style[data-fullpagelab-preparation="scrollbars"]')).toBeNull();
+    expect(frameDocument.querySelector('style[data-fullpagelab-preparation="scrollbars"]')).toBeNull();
+    expect(nestedFrameDocument.querySelector('style[data-fullpagelab-preparation="scrollbars"]')).toBeNull();
+  });
+
+  it('continues preparation when an iframe document is inaccessible', async () => {
+    document.body.innerHTML = '<iframe></iframe>';
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+    if (!frame) throw new Error('Expected an iframe.');
+    Object.defineProperty(frame, 'contentDocument', {
+      configurable: true,
+      get: () => {
+        throw new DOMException('Blocked a frame with origin from accessing a cross-origin frame.');
+      },
+    });
+
+    const options = structuredClone(defaultSettings.capture);
+    options.lazyLoad.forceEagerImages = false;
+    options.lazyLoad.waitImagesDecode = false;
+    options.lazyLoad.waitFonts = false;
+    options.pauseMedia = false;
+    const preparation = await preparePage(createPreparePlan(options, metrics()), metrics());
+
+    expect(document.querySelector('style[data-fullpagelab-preparation="scrollbars"]')).not.toBeNull();
+    await preparation.restore();
+    expect(document.querySelector('style[data-fullpagelab-preparation="scrollbars"]')).toBeNull();
+  });
+
   it('scans the document and restores preparation styles exactly', async () => {
     document.documentElement.dir = 'rtl';
     document.body.innerHTML = '<div id="banner" style="display: block">Banner</div><main>Content</main>';
