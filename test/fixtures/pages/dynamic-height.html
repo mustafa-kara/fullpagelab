@@ -12,15 +12,14 @@
       ::-webkit-scrollbar-track { background: #e2e8f0; }
       ::-webkit-scrollbar-thumb { background: #ff00ff; }
       body { color: #172033; font: 700 24px/1 Arial, sans-serif; }
-      .band[data-band-index] { display: grid; width: 100%; height: 200px; place-items: center; color: #111827; }
+      .band[data-band-index] { display: grid; width: 100%; height: 200px; padding: 12px; place-items: start; color: #111827; }
       .band[data-band-index="0"] { background: #ef4444; }
       .band[data-band-index="1"] { background: #f97316; }
       .band[data-band-index="2"] { background: #eab308; }
       .band[data-band-index="3"] { background: #22c55e; }
       .band[data-band-index="4"] { background: #06b6d4; }
       .band[data-band-index="5"] { background: #3b82f6; }
-      .band[data-band-index="6"] { background: #8b5cf6; }
-      .band[data-band-index="7"] { background: #ec4899; }
+      .dynamic-section { width: 100%; height: 400px; padding: 12px; background: #8b5cf6; }
     </style>
   </head>
   <body>
@@ -32,15 +31,11 @@
     <div class="band" data-band-index="5">Bant 5</div>
     <script>
       window.addEventListener('scroll', () => {
-        const fragment = document.createDocumentFragment();
-        for (let index = 6; index < 8; index += 1) {
-          const band = document.createElement('div');
-          band.className = 'band';
-          band.dataset.bandIndex = String(index);
-          band.textContent = `İlk kaydırmada eklenen bant ${index}`;
-          fragment.append(band);
-        }
-        document.body.append(fragment);
+        const section = document.createElement('section');
+        section.className = 'dynamic-section';
+        section.dataset.dynamicSection = 'true';
+        section.textContent = 'İlk kaydırmada eklenen 400 px dinamik bölüm';
+        document.body.append(section);
       }, { once: true });
     </script>
   </body>
