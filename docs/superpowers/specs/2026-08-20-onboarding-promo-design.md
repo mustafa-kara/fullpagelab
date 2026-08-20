@@ -18,19 +18,23 @@ kaybetmeden tek bir birincil eylemle tamamlanır.
 2. **Gizlilik:** Ekran görüntülerinin kullanıcı açıkça yüklemeyi seçmedikçe
    tarayıcıdan çıkmadığını belirten ana mesaj, `activeTab` izninin açıklaması,
    kalıcı depolama isteği ve varsayılan olarak kapalı tanılama seçeneği.
-3. **Dene:** `capture.start({ mode: 'fullPage' })` çağrısını başlatan tek CTA.
-   Başlangıçtan önce `general.onboardingDone=true` yazılır; kullanıcı isterse
-   turu atlayıp aynı tamamlanma ekranına ulaşır.
+3. **Dene:** Kurulum sekmesinin Chrome uzantı sayfası olduğu açıkça belirtilir.
+   Tek CTA, `onboarding.openDemo` ile yakalanabilir bir örnek web sayfasını yeni
+   sekmede açar. Kullanıcı bu sekmede FullPageLab simgesini kullanarak ilk gerçek
+   yakalamasını başlatır. Kullanıcı isterse turu atlayıp aynı tamamlanma ekranına
+   ulaşır.
 
 ## Görsel sistem
 
 - Tam sayfa iki kolonlu tanıtım düzeni: solda marka/ilerleme rayı, sağda adım
   içeriği ve eylem alanı.
-- FullPageLab mavi-viyole vurgu sistemi, açık yüzeyler, yumuşak sınırlar ve
-  sınırlı gölge kullanımı.
+- Tarayıcı yardımcısı hissi veren içerik-öncelikli düzen: nötr yüzeyler, tek mavi
+  vurgu rengi, belirgin sınırlar ve ölçülü gölge kullanımı.
+- Dekoratif gradient, sahte tarayıcı mockup'ı, parlayan tarama animasyonu ve
+  tekrarlanan CTA kullanılmaz; her adımda tek bir birincil eylem bulunur.
 - Emoji yerine kapalı bir ikon sözlüğüyle çizilmiş inline SVG ikonlar.
-- Yakalama önizlemesi, kısayol kartı ve sabitleme ipucu gerçek kullanım
-  sırasını görsel olarak anlatır.
+- Yakalama akışı satırları, kısayol kartı ve sabitleme ipucu gerçek kullanım
+  sırasını doğrudan anlatır.
 
 ## Etkileşim ve durumlar
 
@@ -38,8 +42,8 @@ kaybetmeden tek bir birincil eylemle tamamlanır.
 - Her adımda tek bir birincil CTA; `Turu atla` ikincil eylem olarak korunur.
 - Kalıcı depolama isteği beklerken buton kilitlenir; başarılı/başarısız sonuç
   aynı kartta açıklanır.
-- İlk yakalama başlatılınca CTA kilitlenir, canlı durum mesajı gösterilir ve
-  result sekmesinin açılacağı bildirilir.
+- Örnek sayfa açılırken CTA kilitlenir; açıldıktan sonra yeni sekmede uzantı
+  simgesinin kullanılacağı canlı durum mesajıyla açıklanır.
 - Ayar dili değiştiğinde `document.documentElement.lang` güncellenir; metinler
   `public/_locales/{en,tr}/messages.json` içindeki onboarding anahtarlarından
   gelir.
@@ -62,7 +66,7 @@ kaybetmeden tek bir birincil eylemle tamamlanır.
 | Dil | `public/_locales/en/messages.json`, `public/_locales/tr/messages.json` |
 | Tamamlanma | `settings.set({ patch: { general: { onboardingDone: true } } })` |
 | Gizlilik | `settings.set({ patch: { privacy: { telemetry } } })` |
-| İlk yakalama | `capture.start` ile `mode: 'fullPage'` |
+| Örnek sayfa | `onboarding.openDemo` ile `https://example.com/` yeni sekmesi |
 | Kurulum tetikleyicisi | `runtime.onInstalled` → onboarding sekmesi |
 
 ## Kabul ölçütleri

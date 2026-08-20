@@ -24,6 +24,7 @@ export interface MsgMap {
   'capture.ping': { req: void; res: { ready: boolean; version: string } };
   'capture.listActive': { req: void; res: JobState[] };
   'capture.start': { req: { mode: CaptureMode }; res: { jobId: Id } };
+  'onboarding.openDemo': { req: void; res: { tabId: number } };
   'capture.cancel': { req: { jobId: Id }; res: void };
   'history.get': { req: { id: Id }; res: CaptureRecord | null };
   'result.get': { req: { id: Id }; res: TemporaryResultPayload | null };

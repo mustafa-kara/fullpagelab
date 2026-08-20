@@ -218,6 +218,14 @@ export function createCaptureCoordinator({
           if (!scrollResult) throw new Error('Page scrolling is unavailable on this build.');
           const actual = 'actual' in scrollResult ? scrollResult.actual : scrollResult;
           let observedDocument = 'actual' in scrollResult ? scrollResult.documentNow : undefined;
+          const scrollBounds = plan.scrollBounds ?? plan.content;
+          const maximumScrollY = Math.max(0, scrollBounds.height - plan.viewport.height);
+          const minimumScrollY = plan.root === 'document' ? plan.origin.y : 0;
+          const expectedScrollY = Math.min(step.scrollTo.y, minimumScrollY + maximumScrollY);
+          if (Math.abs(actual.y - expectedScrollY) > 1) {
+            const reason = step.index === 0 ? 'a cropped first section' : 'duplicate tiles';
+            throw new CaptureValidationError('E_VALIDATION', `The page did not reach the requested scroll position; capture stopped to avoid ${reason}.`, true);
+          }
           assertNotCancelled(current.jobId);
           const refreshedMetrics = await platform.scan?.(current.tabId, { findScrollContainers: false, findFixedElements: false, findIframes: false });
           if (refreshedMetrics && (refreshedMetrics.viewport.width !== metrics.viewport.width || refreshedMetrics.viewport.height !== metrics.viewport.height || refreshedMetrics.dpr !== metrics.dpr || refreshedMetrics.zoom !== metrics.zoom)) {

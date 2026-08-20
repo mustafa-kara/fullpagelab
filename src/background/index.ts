@@ -261,6 +261,12 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
           sendResponse(reply(message, result));
           return;
         }
+        case 'onboarding.openDemo': {
+          const demoTab = await chrome.tabs.create({ url: 'https://example.com/', active: true });
+          if (demoTab.id === undefined) throw new Error('The demo page could not be opened.');
+          sendResponse(reply(message, { tabId: demoTab.id }));
+          return;
+        }
         case 'capture.cancel': {
           const payload = message.payload as { jobId?: string };
           if (!payload || typeof payload.jobId !== 'string') throw new Error('Job id is required.');

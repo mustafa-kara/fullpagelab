@@ -14,7 +14,7 @@ const sendMessage = vi.fn(async (type: string, payload?: unknown) => {
     if (patch?.privacy) currentSettings = { ...currentSettings, privacy: { ...currentSettings.privacy, ...patch.privacy } };
     return structuredClone(currentSettings);
   }
-  if (type === 'capture.start') return { jobId: 'job-onboarding' };
+  if (type === 'onboarding.openDemo') return { tabId: 42 };
   return undefined;
 });
 
@@ -63,16 +63,16 @@ describe('onboarding page', () => {
     await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledWith('settings.set', { patch: { privacy: { telemetry: true } } }));
   });
 
-  it('starts a full-page capture from the final step', async () => {
+  it('opens a capturable webpage from the final step', async () => {
     const { Onboarding } = await import('../../src/pages/onboarding/main');
     render(h(Onboarding, {}), document.getElementById('app')!);
     document.querySelector<HTMLButtonElement>('[data-testid="onboarding-next"]')?.click();
     await vi.waitFor(() => expect(document.querySelector('[data-testid="onboarding-privacy"]')).not.toBeNull());
     document.querySelector<HTMLButtonElement>('[data-testid="onboarding-next"]')?.click();
     await vi.waitFor(() => expect(document.querySelector('[data-testid="onboarding-try"]')).not.toBeNull());
-    document.querySelector<HTMLButtonElement>('[data-testid="onboarding-capture"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="onboarding-next"]')?.click();
 
-    await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledWith('capture.start', { mode: 'fullPage' }));
-    expect(document.querySelector('[data-testid="onboarding-try"]')?.textContent).toContain('onboarding.try.startedTitle');
+    await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledWith('onboarding.openDemo', undefined));
+    await vi.waitFor(() => expect(document.querySelector('[data-testid="onboarding-try"]')?.textContent).toContain('onboarding.try.startedTitle'));
   });
 });
