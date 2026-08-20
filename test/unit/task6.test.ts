@@ -148,14 +148,26 @@ describe('Task 6 capture contracts', () => {
     const states: JobState[] = [];
     const jobs = createJobs(states);
     const tab = { id: 7, windowId: 3, url: 'chrome://settings' };
+    const scan = vi.fn(async () => metrics());
+    const prepare = vi.fn(async () => ({
+      hiddenSelectors: [], removedScrollbars: true, pausedMedia: 0, eagerizedImages: 0,
+      smartHidden: [], scrollRoot: 'document' as const, effectiveDocument: metrics().document,
+    }));
+    const restore = vi.fn(async () => undefined);
     const platform: CapturePlatform = {
       queryActiveTab: vi.fn(async () => tab),
       captureVisibleTab: vi.fn(async () => 'data:image/png;base64,AAAA'),
       download: vi.fn(async () => 1),
+      scan,
+      prepare,
+      restore,
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
     await expect(coordinator.start({ request: captureRequest('visible') })).resolves.toBeTruthy();
     expect(platform.captureVisibleTab).toHaveBeenCalledWith(3);
+    expect(scan).not.toHaveBeenCalled();
+    expect(prepare).not.toHaveBeenCalled();
+    expect(restore).not.toHaveBeenCalled();
     expect(states.at(-1)?.phase).toBe('done');
   });
 

@@ -108,6 +108,16 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Capture failed.';
 }
 
+function isHttpPage(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const protocol = new URL(url).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function elapsedMs(job: JobState, endedAt: string): number {
   const started = Date.parse(job.startedAt);
   const ended = Date.parse(endedAt);
@@ -159,15 +169,40 @@ export function createCaptureCoordinator({
   }
 
   async function runVisible(job: JobState): Promise<JobState> {
-    let current = await update(job, { phase: 'capturing' }, 'Capturing the visible tab.');
-    assertNotCancelled(current.jobId);
-    const dataUrl = await withPhaseDeadline('capturing', phaseDeadlineMs('capturing', current.request.options), visibleBackend.capture({ id: current.tabId, windowId: current.windowId }));
-    assertNotCancelled(current.jobId);
-    current = await update(current, { phase: 'exporting', progress: { done: 0, total: 1 }, tilesWritten: 1 }, 'Saving the capture result.');
-    const result = resultService
-      ? await withPhaseDeadline('exporting', phaseDeadlineMs('exporting', current.request.options), resultService.save({ job: current, original: dataUrlToBlob(dataUrl), durationMs: elapsedMs(current, now()) }))
-      : undefined;
-    return update(current, { phase: 'done', finishedAt: now(), progress: { done: 1, total: 1 }, captureId: result?.id }, 'Capture ready.');
+    let current = job;
+    let metrics: PageMetrics | undefined;
+    if (isHttpPage(current.request.target.url) && platform.scan) {
+      current = await update(current, { phase: 'preparing' }, 'Scanning the page for visible-area preparation.');
+      try {
+        metrics = await withPhaseDeadline('preparing', phaseDeadlineMs('preparing', current.request.options), platform.scan(current.tabId));
+        current = await update(current, { metrics }, 'Page metrics collected for visible-area preparation.');
+        if (platform.prepare) {
+          const preparePlan = createPreparePlan(current.request.options, metrics);
+          await withPhaseDeadline('preparing', phaseDeadlineMs('preparing', current.request.options), platform.prepare(current.tabId, preparePlan, metrics));
+          current = await update(current, {}, 'Page prepared for visible-area capture.');
+        }
+      } catch (error) {
+        current = await update(current, {}, `Visible-area preparation skipped: ${errorMessage(error)}`);
+      }
+    }
+
+    try {
+      current = await update(current, { phase: 'capturing' }, 'Capturing the visible tab.');
+      assertNotCancelled(current.jobId);
+      const dataUrl = await withPhaseDeadline(
+        'capturing',
+        phaseDeadlineMs('capturing', current.request.options),
+        visibleBackend.capture({ id: current.tabId, windowId: current.windowId }),
+      );
+      assertNotCancelled(current.jobId);
+      current = await update(current, { phase: 'exporting', progress: { done: 0, total: 1 }, tilesWritten: 1 }, 'Saving the capture result.');
+      const result = resultService
+        ? await withPhaseDeadline('exporting', phaseDeadlineMs('exporting', current.request.options), resultService.save({ job: current, original: dataUrlToBlob(dataUrl), durationMs: elapsedMs(current, now()) }))
+        : undefined;
+      return update(current, { phase: 'done', finishedAt: now(), progress: { done: 1, total: 1 }, captureId: result?.id }, 'Capture ready.');
+    } finally {
+      if (metrics) await platform.restore?.(current.tabId, metrics.scroll).catch(() => undefined);
+    }
   }
 
   async function runFullPage(job: JobState): Promise<JobState> {
