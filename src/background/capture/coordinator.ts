@@ -1,6 +1,6 @@
 import { createPreparePlan } from '../../content/preparer';
 import { createId } from '../../shared/ids';
-import type { CaptureMode, CaptureRequest, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions } from '../../shared/types/capture';
+import type { CaptureMode, CaptureRequest, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions, ScrollStep } from '../../shared/types/capture';
 import type { ErrorCode, ErrorInfo, Point, Size } from '../../shared/types/primitives';
 import type { CaptureResultService } from '../result/types';
 import { VisibleTabBackend } from './backends/visible-tab';
@@ -8,6 +8,7 @@ import { dataUrlToBlob, stitchVerticalTiles, type CaptureTile } from './image';
 import { CaptureTimeoutError, appendJobLog, phaseDeadlineMs, withPhaseDeadline } from './job';
 import { createCapturePlan, createVerticalPlan, extendCapturePlan, recomputeStepFromAck } from './plan';
 import { createCaptureRateLimiter } from './rate-limiter';
+import { assertAcknowledgedProgress } from './scroll-progress';
 import { CaptureValidationError, ensureActiveCaptureTab, validateCaptureTab } from './validation';
 
 export { createCapturePlan, createVerticalPlan, createNestedPlan, extendCapturePlan, recomputeStepFromAck } from './plan';
@@ -207,6 +208,7 @@ export function createCaptureCoordinator({
       await platform.progress?.(current.tabId, { jobId: current.jobId, phase: 'capturing', done: 0, total: plan.steps.length, message: 'Capturing planned tiles.', visible: false, allowCancel: true });
       await withPhaseDeadline('capturing', phaseDeadlineMs('capturing', current.request.options), (async () => {
         let stepIndex = 0;
+        let previousAck: { step: ScrollStep; actual: Point } | undefined;
         while (stepIndex < plan.steps.length) {
           const step = plan.steps[stepIndex];
           if (!step) break;
@@ -216,14 +218,8 @@ export function createCaptureCoordinator({
           if (!scrollResult) throw new Error('Page scrolling is unavailable on this build.');
           const actual = 'actual' in scrollResult ? scrollResult.actual : scrollResult;
           let observedDocument = 'actual' in scrollResult ? scrollResult.documentNow : undefined;
-          const scrollBounds = plan.scrollBounds ?? plan.content;
-          const maximumScrollY = Math.max(0, scrollBounds.height - plan.viewport.height);
-          const minimumScrollY = plan.root === 'document' ? plan.origin.y : 0;
-          const expectedScrollY = Math.min(step.scrollTo.y, minimumScrollY + maximumScrollY);
-          if (Math.abs(actual.y - expectedScrollY) > 1) {
-            const reason = step.index === 0 ? 'a cropped first section' : 'duplicate tiles';
-            throw new CaptureValidationError('E_VALIDATION', `The page did not reach the requested scroll position; capture stopped to avoid ${reason}.`, true);
-          }
+          assertAcknowledgedProgress(plan, step, actual, previousAck);
+          const acknowledgedStep = recomputeStepFromAck(plan, step, actual);
           assertNotCancelled(current.jobId);
           const refreshedMetrics = await platform.scan?.(current.tabId, { findScrollContainers: false, findFixedElements: false, findIframes: false });
           if (refreshedMetrics && (refreshedMetrics.viewport.width !== metrics.viewport.width || refreshedMetrics.viewport.height !== metrics.viewport.height || refreshedMetrics.dpr !== metrics.dpr || refreshedMetrics.zoom !== metrics.zoom)) {
@@ -238,7 +234,8 @@ export function createCaptureCoordinator({
             await platform.progress?.(current.tabId, { jobId: current.jobId, phase: 'capturing', done: tiles.length, total: plan.steps.length, visible: true, allowCancel: true }).catch(() => undefined);
           }
           assertNotCancelled(current.jobId);
-          tiles.push({ dataUrl, actual, step: recomputeStepFromAck(plan, step, actual) });
+          tiles.push({ dataUrl, actual, step: acknowledgedStep });
+          previousAck = { step, actual };
           if (observedDocument && observedDocument.height > plan.content.height + 50) {
             const extended = extendCapturePlan(plan, observedDocument, current.request.options.limits);
             if (extended.steps.length > plan.steps.length || extended.content.height > plan.content.height || extended.content.width > plan.content.width) {
