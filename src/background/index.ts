@@ -2,9 +2,9 @@ import { defaultSettings } from '../shared/defaults';
 import { createId } from '../shared/ids';
 import { log } from '../shared/log';
 import { createError, createMessage, isReply } from '../shared/messages';
-import type { CaptureMode, CanvasLimits, JobProgress, PageMetrics, PreparePlan, PreparedState } from '../shared/types/capture';
+import type { CaptureRequest, CanvasLimits, JobProgress, PageMetrics, PreparePlan, PreparedState } from '../shared/types/capture';
 import type { MessageMap, Msg, Reply } from '../shared/types/messages';
-import { envelopeSchema } from '../shared/types/schemas';
+import { captureRequestSchema, envelopeSchema } from '../shared/types/schemas';
 import type { DeepPartial, Settings } from '../shared/types/settings';
 import { createCaptureCoordinator } from './capture/coordinator';
 import { blobToDataUrl } from './capture/image';
@@ -255,9 +255,8 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
           return;
         }
         case 'capture.start': {
-          const payload = message.payload as { mode?: string };
-          if (!payload || typeof payload.mode !== 'string') throw new Error('Capture mode is required.');
-          const result = await captureCoordinator.startDetached({ mode: payload.mode as CaptureMode, settings });
+          const request = captureRequestSchema.parse(message.payload) as unknown as CaptureRequest;
+          const result = await captureCoordinator.startDetached({ request });
           sendResponse(reply(message, result));
           return;
         }

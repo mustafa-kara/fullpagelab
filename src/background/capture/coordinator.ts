@@ -2,7 +2,6 @@ import { createPreparePlan } from '../../content/preparer';
 import { createId } from '../../shared/ids';
 import type { CaptureMode, CaptureRequest, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions } from '../../shared/types/capture';
 import type { ErrorCode, ErrorInfo, Point, Size } from '../../shared/types/primitives';
-import type { Settings } from '../../shared/types/settings';
 import type { CaptureResultService } from '../result/types';
 import { VisibleTabBackend } from './backends/visible-tab';
 import { dataUrlToBlob, stitchVerticalTiles, type CaptureTile } from './image';
@@ -55,8 +54,8 @@ export interface CaptureCoordinatorOptions {
 }
 
 export interface CaptureStartInput {
-  mode: CaptureMode;
-  settings: Settings;
+  request: CaptureRequest;
+  tab?: CaptureTab;
 }
 
 export interface CaptureStartResult {
@@ -78,21 +77,20 @@ export function captureFilename(tab: CaptureTab, mode: CaptureMode): string {
   return `fullpagelab_${safeHost}_${safeMode}.png`;
 }
 
-function requestFor(jobId: string, mode: CaptureMode, tab: CaptureTab, settings: Settings): CaptureRequest {
-  return {
-    id: jobId,
-    mode,
-    target: { tabId: tab.id, windowId: tab.windowId, url: tab.url ?? 'about:blank', title: tab.title },
-    options: structuredClone(settings.capture),
-    export: structuredClone(settings.export),
-    trigger: 'popup',
-  };
-}
-
-function initialJob(jobId: string, mode: CaptureMode, tab: CaptureTab, settings: Settings, now: string): JobState {
+function initialJob(jobId: string, request: CaptureRequest, tab: CaptureTab, now: string): JobState {
   return {
     jobId,
-    request: requestFor(jobId, mode, tab, settings),
+    request: {
+      ...structuredClone(request),
+      id: jobId,
+      target: {
+        ...structuredClone(request.target),
+        tabId: tab.id,
+        windowId: tab.windowId,
+        url: tab.url ?? 'about:blank',
+        title: tab.title,
+      },
+    },
     tabId: tab.id,
     windowId: tab.windowId,
     backend: 'visibleTab',
@@ -290,11 +288,11 @@ export function createCaptureCoordinator({
   }
 
   async function createJob(input: CaptureStartInput): Promise<JobState> {
-    if (!supportedModes.has(input.mode)) throw new Error(`Capture mode "${input.mode}" is not available yet.`);
-    const tab = await platform.queryActiveTab();
+    if (!supportedModes.has(input.request.mode)) throw new Error(`Capture mode "${input.request.mode}" is not available yet.`);
+    const tab = input.tab ?? await platform.queryActiveTab();
     if (!tab) throw new Error('No active tab is available.');
-    validateCaptureTab(tab, input.mode !== 'visible');
-    const job = initialJob(createId(), input.mode, tab, input.settings, now());
+    validateCaptureTab(tab, input.request.mode !== 'visible');
+    const job = initialJob(createId(), input.request, tab, now());
     await jobs.put(job);
     return job;
   }

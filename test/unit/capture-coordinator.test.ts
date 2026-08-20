@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createCaptureCoordinator, createVerticalPlan, type CapturePlatform } from '../../src/background/capture/coordinator';
 import { defaultSettings } from '../../src/shared/defaults';
-import type { JobState } from '../../src/shared/types/capture';
+import type { CaptureRequest, JobState } from '../../src/shared/types/capture';
 import type { CaptureRecord } from '../../src/shared/types/history';
 
 function createJobs() {
@@ -17,7 +17,45 @@ function createJobs() {
   };
 }
 
+function captureRequest(mode: CaptureRequest['mode']): CaptureRequest {
+  return {
+    mode,
+    target: {},
+    options: structuredClone(defaultSettings.capture),
+    export: structuredClone(defaultSettings.export),
+    trigger: 'popup',
+  };
+}
+
 describe('capture coordinator', () => {
+  it('preserves the trigger and merges the resolved tab into the request target', async () => {
+    const jobs = createJobs();
+    const platform: CapturePlatform = {
+      queryActiveTab: vi.fn(async () => ({ id: 7, windowId: 3, url: 'https://example.com/docs', title: 'Example docs' })),
+      captureVisibleTab: vi.fn(async () => 'data:image/png;base64,AAAA'),
+      download: vi.fn(async () => 11),
+    };
+    const request: CaptureRequest = {
+      mode: 'visible',
+      target: { selector: 'main' },
+      options: structuredClone(defaultSettings.capture),
+      export: structuredClone(defaultSettings.export),
+      trigger: 'contextMenu',
+    };
+    const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-19T14:00:00.000Z' });
+
+    await coordinator.start({ request });
+
+    expect(jobs.states[0]?.request.trigger).toBe('contextMenu');
+    expect(jobs.states[0]?.request.target).toEqual({
+      selector: 'main',
+      tabId: 7,
+      windowId: 3,
+      url: 'https://example.com/docs',
+      title: 'Example docs',
+    });
+  });
+
   it('captures the visible tab without starting a download', async () => {
     const jobs = createJobs();
     const platform: CapturePlatform = {
@@ -28,7 +66,7 @@ describe('capture coordinator', () => {
     const saveResult = vi.fn(async () => ({ id: 'capture-1' } as CaptureRecord));
     const coordinator = createCaptureCoordinator({ platform, jobs, resultService: { save: saveResult, get: vi.fn(async () => null) }, now: () => '2026-08-19T14:00:00.000Z' });
 
-    const result = await coordinator.start({ mode: 'visible', settings: structuredClone(defaultSettings) });
+    const result = await coordinator.start({ request: captureRequest('visible') });
 
     expect(result.jobId).toBeTruthy();
     expect(platform.captureVisibleTab).toHaveBeenCalledWith(3);

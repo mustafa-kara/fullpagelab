@@ -1,4 +1,4 @@
-import type { AgentScrollRequest, CaptureMode, CanvasLimits, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions } from './capture';
+import type { AgentScrollRequest, CaptureRequest, CanvasLimits, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions } from './capture';
 import type { ExportRequest, ExportResult } from './export';
 import type { CaptureRecord, TemporaryResultPayload } from './history';
 import type { ErrorInfo, Id, Point, Size } from './primitives';
@@ -23,7 +23,7 @@ export interface MsgMap {
   'settings.set': { req: { patch: DeepPartial<Settings> }; res: Settings };
   'capture.ping': { req: void; res: { ready: boolean; version: string } };
   'capture.listActive': { req: void; res: JobState[] };
-  'capture.start': { req: { mode: CaptureMode }; res: { jobId: Id } };
+  'capture.start': { req: CaptureRequest; res: { jobId: Id } };
   'onboarding.openDemo': { req: void; res: { tabId: number } };
   'capture.cancel': { req: { jobId: Id }; res: void };
   'history.get': { req: { id: Id }; res: CaptureRecord | null };

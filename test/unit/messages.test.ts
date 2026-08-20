@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { defaultSettings } from '../../src/shared/defaults';
 import { createError, createMessage, isReply } from '../../src/shared/messages';
-import { envelopeSchema, replySchema } from '../../src/shared/types/schemas';
+import type { CaptureRequest } from '../../src/shared/types/capture';
+import { captureRequestSchema, envelopeSchema, replySchema } from '../../src/shared/types/schemas';
 
 describe('message contracts', () => {
   it('creates a versioned message envelope', () => {
@@ -12,6 +14,19 @@ describe('message contracts', () => {
 
   it('rejects unsupported protocol versions', () => {
     expect(() => envelopeSchema.parse({ v: 2, type: 'capture.ping', id: 'a', payload: undefined })).toThrow();
+  });
+
+  it('validates complete capture requests at the message boundary', () => {
+    const captureRequest: CaptureRequest = {
+      mode: 'fullPage',
+      target: {},
+      options: structuredClone(defaultSettings.capture),
+      export: structuredClone(defaultSettings.export),
+      trigger: 'contextMenu',
+    };
+
+    expect(captureRequestSchema.parse(captureRequest)).toEqual(captureRequest);
+    expect(() => captureRequestSchema.parse({ ...captureRequest, trigger: undefined })).toThrow();
   });
 
   it('serializes errors as replies', () => {

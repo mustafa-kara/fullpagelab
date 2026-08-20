@@ -5,7 +5,7 @@ import { CaptureValidationError, ensureActiveCaptureTab, isPdfViewerUrl, isRestr
 import { createFixedElementController, shouldHideFixedElement } from '../../src/content/fixed-elements';
 import { Restorer } from '../../src/content/restorer';
 import { defaultSettings } from '../../src/shared/defaults';
-import type { JobState, PageMetrics } from '../../src/shared/types/capture';
+import type { CaptureRequest, JobState, PageMetrics } from '../../src/shared/types/capture';
 
 function createJobs(states: JobState[]) {
   return {
@@ -38,6 +38,16 @@ function metrics(): PageMetrics {
     isRestricted: false,
     userAgent: 'test',
     colorScheme: 'light',
+  };
+}
+
+function captureRequest(mode: CaptureRequest['mode']): CaptureRequest {
+  return {
+    mode,
+    target: {},
+    options: structuredClone(defaultSettings.capture),
+    export: structuredClone(defaultSettings.export),
+    trigger: 'popup',
   };
 }
 
@@ -128,7 +138,7 @@ describe('Task 6 capture contracts', () => {
       download: vi.fn(async () => 1),
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
-    await expect(coordinator.start({ mode: 'visible', settings: structuredClone(defaultSettings) })).rejects.toThrow('no longer active');
+    await expect(coordinator.start({ request: captureRequest('visible') })).rejects.toThrow('no longer active');
     expect(platform.captureVisibleTab).not.toHaveBeenCalled();
     expect(states.at(-1)?.phase).toBe('failed');
     expect(states.at(-1)?.error?.code).toBe('E_TAB_NOT_ACTIVE');
@@ -144,7 +154,7 @@ describe('Task 6 capture contracts', () => {
       download: vi.fn(async () => 1),
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
-    await expect(coordinator.start({ mode: 'visible', settings: structuredClone(defaultSettings) })).resolves.toBeTruthy();
+    await expect(coordinator.start({ request: captureRequest('visible') })).resolves.toBeTruthy();
     expect(platform.captureVisibleTab).toHaveBeenCalledWith(3);
     expect(states.at(-1)?.phase).toBe('done');
   });
@@ -162,7 +172,7 @@ describe('Task 6 capture contracts', () => {
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
 
-    const start = coordinator.startDetached({ mode: 'visible', settings: structuredClone(defaultSettings) });
+    const start = coordinator.startDetached({ request: captureRequest('visible') });
     await vi.waitFor(() => expect(platform.captureVisibleTab).toHaveBeenCalled());
     const result = await start;
 
@@ -184,7 +194,7 @@ describe('Task 6 capture contracts', () => {
       download: vi.fn(async () => 1),
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
-    const start = coordinator.start({ mode: 'visible', settings: structuredClone(defaultSettings) });
+    const start = coordinator.start({ request: captureRequest('visible') });
     await vi.waitFor(() => expect(platform.captureVisibleTab).toHaveBeenCalled());
     const jobId = states[0]?.jobId;
     if (!jobId) throw new Error('Job was not persisted.');
@@ -209,7 +219,7 @@ describe('Task 6 capture contracts', () => {
       restore,
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
-    await expect(coordinator.start({ mode: 'fullPage', settings: structuredClone(defaultSettings) })).rejects.toThrow('scroll disconnected');
+    await expect(coordinator.start({ request: captureRequest('fullPage') })).rejects.toThrow('scroll disconnected');
     expect(restore).toHaveBeenCalledTimes(1);
     expect(states.at(-1)?.phase).toBe('failed');
   });
@@ -229,7 +239,7 @@ describe('Task 6 capture contracts', () => {
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
 
-    await expect(coordinator.start({ mode: 'fullPage', settings: structuredClone(defaultSettings) })).rejects.toThrow('cropped first section');
+    await expect(coordinator.start({ request: captureRequest('fullPage') })).rejects.toThrow('cropped first section');
     expect(captureVisibleTab).not.toHaveBeenCalled();
     expect(states.at(-1)?.error?.code).toBe('E_VALIDATION');
   });
@@ -249,7 +259,7 @@ describe('Task 6 capture contracts', () => {
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
 
-    await expect(coordinator.start({ mode: 'fullPage', settings: structuredClone(defaultSettings) })).rejects.toThrow('duplicate tiles');
+    await expect(coordinator.start({ request: captureRequest('fullPage') })).rejects.toThrow('duplicate tiles');
     expect(captureVisibleTab).toHaveBeenCalledTimes(1);
     expect(states.at(-1)?.error?.code).toBe('E_VALIDATION');
   });
@@ -270,7 +280,7 @@ describe('Task 6 capture contracts', () => {
     };
     const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
 
-    await expect(coordinator.start({ mode: 'fullPage', settings: structuredClone(defaultSettings) })).rejects.toThrow('stop after progress assertion');
+    await expect(coordinator.start({ request: captureRequest('fullPage') })).rejects.toThrow('stop after progress assertion');
     expect(progressUpdates.find((update) => update.phase === 'capturing')?.visible).toBe(false);
   });
 });

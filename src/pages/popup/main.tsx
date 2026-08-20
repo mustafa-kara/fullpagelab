@@ -30,10 +30,17 @@ function Popup(): JSX.Element {
   }, []);
 
   const startCapture = async (mode: typeof modes[number][0]): Promise<void> => {
+    if (!settings) return;
     setBusy(true);
     setMessage('');
     try {
-      const result = await sendMessage('capture.start', { mode });
+      const result = await sendMessage('capture.start', {
+        mode,
+        target: {},
+        options: structuredClone(settings.capture),
+        export: structuredClone(settings.export),
+        trigger: 'popup',
+      });
       setJobs((current) => current.filter((job) => job.jobId !== result.jobId));
       window.close();
     } catch (error) {
@@ -49,7 +56,7 @@ function Popup(): JSX.Element {
     {jobs.length > 0 && <div class="card" role="status">Capturing {jobs[0]?.progress.done ?? 0}/{jobs[0]?.progress.total ?? 0}</div>}
     {message && <div class="card" role="alert">{message}</div>}
     <div class="actions">
-      {modes.map(([mode, label]) => <button class="action" type="button" key={mode} aria-label={label} disabled={busy} onClick={() => void startCapture(mode)}>{label}</button>)}
+      {modes.map(([mode, label]) => <button class="action" type="button" key={mode} aria-label={label} disabled={busy || !settings} onClick={() => void startCapture(mode)}>{label}</button>)}
     </div>
     <div class="card muted">{t('privacy_tagline')}</div>
   </div>;
