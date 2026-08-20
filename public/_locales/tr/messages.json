@@ -5,6 +5,7 @@
   "cmdVisible": { "message": "Görünen alanı yakala" },
   "cmdSelection": { "message": "Seçimi yakala" },
   "cmdElement": { "message": "Öğeyi yakala" },
+  "contextMenuCaptureFullPage": { "message": "Tam sayfa ekran görüntüsünü al" },
   "privacy_tagline": { "message": "Ekran görüntüleri siz yüklemeyi seçmedikçe tarayıcınızdan asla çıkmaz." },
   "privacy": { "message": "Ekran görüntüleri siz yüklemeyi seçmedikçe tarayıcınızdan asla çıkmaz." },
   "error_E_PROTOCOL_body": { "message": "Mesaj sürümü desteklenmiyor." },

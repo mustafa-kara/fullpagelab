@@ -5,6 +5,7 @@
   "cmdVisible": { "message": "Capture visible area" },
   "cmdSelection": { "message": "Capture selection" },
   "cmdElement": { "message": "Capture element" },
+  "contextMenuCaptureFullPage": { "message": "Capture full-page screenshot" },
   "privacy_tagline": { "message": "Screenshots never leave your browser unless you choose to upload them." },
   "privacy": { "message": "Screenshots never leave your browser unless you choose to upload them." },
   "error_E_PROTOCOL_body": { "message": "The message version is unsupported." },

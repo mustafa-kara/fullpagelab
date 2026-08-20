@@ -1,4 +1,5 @@
 import { defaultSettings } from '../shared/defaults';
+import { t } from '../shared/i18n';
 import { createId } from '../shared/ids';
 import { log } from '../shared/log';
 import { createError, createMessage, isReply } from '../shared/messages';
@@ -8,6 +9,7 @@ import { captureRequestSchema, envelopeSchema } from '../shared/types/schemas';
 import type { DeepPartial, Settings } from '../shared/types/settings';
 import { createCaptureCoordinator } from './capture/coordinator';
 import { blobToDataUrl } from './capture/image';
+import { createContextMenuController } from './context-menus';
 import { createExportPipeline } from './export/pipeline';
 import { createHistoryService } from './history/service';
 import { createJobStateStore } from './job-state';
@@ -128,6 +130,50 @@ const captureCoordinator = createCaptureCoordinator({
   },
 });
 
+const contextMenus = createContextMenuController({
+  platform: {
+    create(properties) { return chrome.contextMenus.create(properties); },
+    remove(menuItemId) {
+      return new Promise((resolve, reject) => {
+        chrome.contextMenus.remove(menuItemId, () => {
+          const error = chrome.runtime.lastError;
+          if (error) reject(new Error(error.message));
+          else resolve();
+        });
+      });
+    },
+    addClickListener(listener) { chrome.contextMenus.onClicked.addListener(listener); },
+  },
+  getTitle: () => t('contextMenuCaptureFullPage'),
+  async onCapture(tab) {
+    if (tab.id === undefined) throw new Error('The clicked tab is unavailable.');
+    await init();
+    await captureCoordinator.startDetached({
+      request: {
+        mode: 'fullPage',
+        target: {},
+        options: structuredClone(settings.capture),
+        export: structuredClone(settings.export),
+        trigger: 'contextMenu',
+      },
+      tab: {
+        id: tab.id,
+        windowId: tab.windowId,
+        url: tab.url,
+        title: tab.title,
+        active: tab.active,
+        discarded: tab.discarded,
+        status: tab.status === 'loading' || tab.status === 'complete' || tab.status === 'unloaded' ? tab.status : undefined,
+      },
+    });
+  },
+  onError(error) {
+    log('error', 'contextMenu', error instanceof Error ? error.message : 'Context menu capture failed.');
+  },
+});
+
+contextMenus.register();
+
 let initialization: Promise<void> | undefined;
 let updateAvailable = false;
 
@@ -173,6 +219,7 @@ async function initialize(): Promise<void> {
   await chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
   settings = await settingsStore.get();
   await chrome.storage.local.set({ [settingsKey]: settings });
+  await contextMenus.sync();
 
   const recovered = await recoverInterruptedJobs(jobStateStore);
   if (recovered.length > 0) log('warn', 'lifecycle', recovered.length + ' interrupted capture job(s) marked failed.');
