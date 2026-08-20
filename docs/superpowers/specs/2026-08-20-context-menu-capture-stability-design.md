@@ -1,8 +1,11 @@
 # Sağ Tık Menüsü ve Yakalama Kararlılığı Tasarımı
 
 **Tarih:** 20 Ağustos 2026  
-**Durum:** Onaylandı  
+**Durum:** Yerine geçti
 **Kapsam:** Tam sayfa yakalama regresyonu, sağ tık tetikleyicisi, Alt+Shift+P kaldırılması ve kaydırma çubuğu gizleme
+
+> Bu belgedeki kararlar korunarak daha geniş M1/P0 kapsamına alınmıştır. Güncel tasarım:
+> `2026-08-20-m1-p0-capture-core-design.md`.
 
 ## 1. Amaç
 
