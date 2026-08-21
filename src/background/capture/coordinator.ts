@@ -30,6 +30,7 @@ export interface CaptureTab {
 
 export interface CapturePlatform {
   queryActiveTab(): Promise<CaptureTab | undefined>;
+  queryTab?(tabId: number): Promise<CaptureTab | undefined>;
   captureVisibleTab(windowId: number): Promise<string>;
   download(blob: Blob, filename: string): Promise<number>;
   focusTab?(tabId: number, windowId: number): Promise<void>;
@@ -321,8 +322,14 @@ export function createCaptureCoordinator({
 
   async function createJob(input: CaptureStartInput): Promise<JobState> {
     if (!supportedModes.has(input.request.mode)) throw new Error(`Capture mode "${input.request.mode}" is not available yet.`);
-    const tab = input.tab ?? await platform.queryActiveTab();
+    const requestedTabId = input.request.target.tabId;
+    const tab = input.tab ?? (requestedTabId === undefined
+      ? await platform.queryActiveTab()
+      : await platform.queryTab?.(requestedTabId));
     if (!tab) throw new Error('No active tab is available.');
+    if (input.request.target.windowId !== undefined && tab.windowId !== input.request.target.windowId) {
+      throw new CaptureValidationError('E_TAB_CLOSED', 'The requested capture tab is no longer in the expected window.', true);
+    }
     validateCaptureTab(tab, input.request.mode !== 'visible');
     const job = initialJob(createId(), input.request, tab, now());
     await jobs.put(job);

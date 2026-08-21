@@ -7,7 +7,7 @@ import type { CaptureRequest, CanvasLimits, JobProgress, PageMetrics, PreparePla
 import type { MessageMap, Msg, Reply } from '../shared/types/messages';
 import { captureRequestSchema, envelopeSchema } from '../shared/types/schemas';
 import type { DeepPartial, Settings } from '../shared/types/settings';
-import { createCaptureCoordinator } from './capture/coordinator';
+import { createCaptureCoordinator, type CaptureTab } from './capture/coordinator';
 import { blobToDataUrl } from './capture/image';
 import { createCommandController } from './commands';
 import { createContextMenuController } from './context-menus';
@@ -46,6 +46,30 @@ const captureResultService = createCaptureResultService({
 });
 const exportPipeline = createExportPipeline({ history: historyService, temporary: temporaryResultStore });
 
+async function toCaptureTab(tab: chrome.tabs.Tab | undefined): Promise<CaptureTab | undefined> {
+  if (tab?.id === undefined || tab.windowId === undefined) return undefined;
+  let windowState: string | undefined;
+  let windowVisible: boolean | undefined;
+  try {
+    const windowInfo = await chrome.windows.get(tab.windowId);
+    windowState = windowInfo.state;
+    windowVisible = windowInfo.state !== 'minimized';
+  } catch {
+    // Window details may be unavailable without the optional tabs/windows context.
+  }
+  return {
+    id: tab.id,
+    windowId: tab.windowId,
+    url: tab.url,
+    title: tab.title,
+    active: tab.active,
+    discarded: tab.discarded,
+    status: tab.status === 'loading' || tab.status === 'complete' || tab.status === 'unloaded' ? tab.status : undefined,
+    windowState,
+    windowVisible,
+  };
+}
+
 async function injectPageAgent(tabId: number): Promise<void> {
   await chrome.scripting.executeScript({ target: { tabId }, files: ['content/page-agent.js'] });
 }
@@ -76,27 +100,14 @@ const captureCoordinator = createCaptureCoordinator({
   platform: {
     async queryActiveTab() {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id === undefined || tab.windowId === undefined) return undefined;
-      let windowState: string | undefined;
-      let windowVisible: boolean | undefined;
+      return toCaptureTab(tab);
+    },
+    async queryTab(tabId) {
       try {
-        const windowInfo = await chrome.windows.get(tab.windowId);
-        windowState = windowInfo.state;
-        windowVisible = windowInfo.state !== 'minimized';
+        return await toCaptureTab(await chrome.tabs.get(tabId));
       } catch {
-        // Window details may be unavailable without the optional tabs/windows context.
+        return undefined;
       }
-      return {
-        id: tab.id,
-        windowId: tab.windowId,
-        url: tab.url,
-        title: tab.title,
-        active: tab.active,
-        discarded: tab.discarded,
-        status: tab.status === 'loading' || tab.status === 'complete' || tab.status === 'unloaded' ? tab.status : undefined,
-        windowState,
-        windowVisible,
-      };
     },
     async focusTab(tabId, windowId) {
       await chrome.windows.update(windowId, { focused: true });
@@ -199,6 +210,7 @@ const commands = createCommandController({
 commands.register();
 
 let initialization: Promise<void> | undefined;
+let initialized = false;
 let updateAvailable = false;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -254,10 +266,11 @@ async function initialize(): Promise<void> {
 }
 
 function init(): Promise<void> {
+  if (initialized) return Promise.resolve();
   if (initialization) return initialization;
-  initialization = initialize().finally(() => {
-    initialization = undefined;
-  });
+  initialization = initialize()
+    .then(() => { initialized = true; })
+    .finally(() => { initialization = undefined; });
   return initialization;
 }
 

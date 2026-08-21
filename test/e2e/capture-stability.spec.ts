@@ -31,6 +31,28 @@ interface PreparedFixture {
   bands: Array<{ index: number; centerX: number; centerY: number }>;
 }
 
+async function waitForCaptureFailure(driver: Page, jobId: string): Promise<never> {
+  for (;;) {
+    const failure = await driver.evaluate(async (id) => {
+      const stored = await chrome.storage.session.get('activeJobs');
+      const jobs = (stored.activeJobs ?? []) as Array<{ jobId: string; phase: string; error?: { code: string; message: string } }>;
+      const job = jobs.find((item) => item.jobId === id);
+      return job?.phase === 'failed' ? job.error ?? { code: 'E_UNKNOWN', message: 'Capture failed without an error.' } : null;
+    }, jobId);
+    if (failure) throw new Error(`Capture job failed: ${failure.code} ${failure.message}`);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
+async function waitForResultPage(context: BrowserContext, extensionId: string): Promise<Page> {
+  const prefix = `chrome-extension://${extensionId}${resultPath}`;
+  for (;;) {
+    const page = context.pages().find((candidate) => candidate.url().startsWith(prefix));
+    if (page) return page;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
 function hexToRgb(color: string): Rgb {
   const value = Number.parseInt(color.slice(1), 16);
   return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff];
@@ -75,26 +97,40 @@ async function prepareFixture(page: Page): Promise<PreparedFixture> {
 async function sendCapture(
   context: BrowserContext,
   extensionId: string,
+  driver: Page,
   fixture: Page,
   request: CaptureRequest,
   testInfo: TestInfo,
 ): Promise<Page> {
-  const driver = await context.newPage();
-  await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
-  const resultPagePromise = context.waitForEvent('page');
   await fixture.bringToFront();
   const messageId = `e2e-${testInfo.testId}`;
-  const reply = await driver.evaluate(async ({ id, payload }) => new Promise<Reply<'capture.start'>>((resolve, reject) => {
-    chrome.runtime.sendMessage({ v: 1, type: 'capture.start', id, payload, from: 'ui' }, (response: Reply<'capture.start'>) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      resolve(response);
+  const resultPagePromise = waitForResultPage(context, extensionId);
+  const reply = await driver.evaluate(async ({ fixtureUrl, id, payload }) => {
+    const fixtureTab = (await chrome.tabs.query({})).find((tab) => tab.url === fixtureUrl);
+    if (fixtureTab?.id === undefined || fixtureTab.windowId === undefined) {
+      throw new Error(`Fixture tab not found: ${fixtureUrl}`);
+    }
+    await chrome.tabs.update(fixtureTab.id, { active: true });
+    const targetedPayload = {
+      ...payload,
+      target: { ...payload.target, tabId: fixtureTab.id, windowId: fixtureTab.windowId },
+    };
+    return new Promise<Reply<'capture.start'>>((resolve, reject) => {
+      chrome.runtime.sendMessage({ v: 1, type: 'capture.start', id, payload: targetedPayload, from: 'ui' }, (response: Reply<'capture.start'>) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve(response);
+      });
     });
-  }), { id: messageId, payload: request });
+  }, { fixtureUrl: fixture.url(), id: messageId, payload: request });
+  if (!reply.ok) {
+    void resultPagePromise.catch(() => undefined);
+    throw new Error(`Capture request failed: ${reply.error.code} ${reply.error.message}`);
+  }
   expect(reply).toMatchObject({ v: 1, type: 'capture.start', id: messageId, ok: true });
-  const resultPage = await resultPagePromise;
+  const resultPage = await Promise.race([resultPagePromise, waitForCaptureFailure(driver, reply.payload.jobId)]);
   await resultPage.waitForURL((url) => url.href.startsWith(`chrome-extension://${extensionId}${resultPath}`));
   await resultPage.waitForLoadState('domcontentloaded');
   await resultPage.locator('[data-testid="result-viewer"] img').waitFor({ state: 'visible' });
@@ -134,11 +170,15 @@ async function resultPixels(resultPage: Page, samples: Array<{ x: number; y: num
 async function expectFullPageBands(fixtureName: 'long.html' | 'sticky.html', testInfo: TestInfo): Promise<void> {
   const { context, extensionId } = await launchExtension(testInfo);
   try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
     const fixture = await context.newPage();
     await fixture.goto(`${fixtureOrigin}/${fixtureName}`);
     const prepared = await prepareFixture(fixture);
     expect(prepared.bands.map((band) => band.index)).toEqual(bandColors.map((_, index) => index));
-    const resultPage = await sendCapture(context, extensionId, fixture, captureRequest('fullPage'), testInfo);
+    const request = captureRequest('fullPage');
+    if (fixtureName === 'sticky.html') request.options.hideFixedElements = 'always';
+    const resultPage = await sendCapture(context, extensionId, driver, fixture, request, testInfo);
     const sampled = await resultPixels(resultPage, prepared.bands.map((band) => ({
       x: band.centerX * prepared.dpr,
       y: band.centerY * prepared.dpr,
@@ -153,9 +193,11 @@ async function expectFullPageBands(fixtureName: 'long.html' | 'sticky.html', tes
 async function expectScrollbarAbsent(fixtureName: 'long.html' | 'nested-scroll.html', testInfo: TestInfo): Promise<void> {
   const { context, extensionId } = await launchExtension(testInfo);
   try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
     const fixture = await context.newPage();
     await fixture.goto(`${fixtureOrigin}/${fixtureName}`);
-    const resultPage = await sendCapture(context, extensionId, fixture, captureRequest('visible'), testInfo);
+    const resultPage = await sendCapture(context, extensionId, driver, fixture, captureRequest('visible'), testInfo);
     const scrollbarPixels = await resultPage.locator('[data-testid="result-viewer"] img').evaluate((image: HTMLImageElement) => {
       const canvas = document.createElement('canvas');
       canvas.width = image.naturalWidth;

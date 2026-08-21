@@ -91,6 +91,32 @@ describe('capture coordinator', () => {
     });
   });
 
+  it('uses the explicitly requested tab instead of whichever tab is active', async () => {
+    const jobs = createJobs();
+    const requestedTab = { id: 7, windowId: 3, url: 'https://example.com/docs', title: 'Example docs' };
+    let activeTab = { id: 99, windowId: 3, url: 'chrome-extension://driver/popup.html' };
+    const queryActiveTab = vi.fn(async () => activeTab);
+    const queryTab = vi.fn(async () => requestedTab);
+    const focusTab = vi.fn(async () => { activeTab = requestedTab; });
+    const platform: CapturePlatform = {
+      queryActiveTab,
+      queryTab,
+      focusTab,
+      captureVisibleTab: vi.fn(async () => 'data:image/png;base64,AAAA'),
+      download: vi.fn(async () => 11),
+    };
+    const request = captureRequest('visible');
+    request.target = { tabId: 7, windowId: 3 };
+    const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-19T14:00:00.000Z' });
+
+    await coordinator.start({ request });
+
+    expect(queryTab).toHaveBeenCalledWith(7);
+    expect(focusTab).toHaveBeenCalledWith(7, 3);
+    expect(jobs.states[0]?.tabId).toBe(7);
+    expect(jobs.states[0]?.request.target.url).toBe('https://example.com/docs');
+  });
+
   it('captures the visible tab without starting a download', async () => {
     const jobs = createJobs();
     const platform: CapturePlatform = {

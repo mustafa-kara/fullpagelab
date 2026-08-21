@@ -35,7 +35,7 @@ export function createPreparePlan(options: CaptureOptions, metrics: PageMetrics)
 const scrollbarCss = 'html, body, * { scrollbar-width: none !important; } html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }';
 
 function addDocumentStyle(restorer: Restorer, owner: Document, cssText: string, id: string): void {
-  const root = owner.documentElement;
+  const root = owner.head ?? owner.documentElement;
   if (!root) return;
   const style = owner.createElement('style');
   style.dataset.fullpagelabPreparation = id;

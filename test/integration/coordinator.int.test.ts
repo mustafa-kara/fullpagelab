@@ -56,6 +56,7 @@ describe('content preparation and progress integration', () => {
       expect(style?.textContent).toContain('scrollbar-width: none');
       expect(style?.textContent).toContain('width: 0');
       expect(style?.textContent).toContain('height: 0');
+      expect(style?.parentElement?.tagName).toBe('HEAD');
     }
 
     await preparation.restore();

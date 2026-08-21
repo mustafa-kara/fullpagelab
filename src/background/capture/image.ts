@@ -33,8 +33,8 @@ export async function stitchVerticalTiles(tiles: CaptureTile[], plan: ScrollPlan
   const firstBitmap = await createImageBitmap(dataUrlToBlob(tiles[0]?.dataUrl ?? ''));
   const sourceScaleX = firstBitmap.width / Math.max(1, plan.viewport.width * plan.dpr);
   const sourceScaleY = firstBitmap.height / Math.max(1, plan.viewport.height * plan.dpr);
-  const outputWidth = Math.max(1, Math.ceil(plan.content.width * plan.dpr));
-  const outputHeight = Math.max(1, Math.ceil(plan.content.height * plan.dpr));
+  const outputWidth = Math.max(1, Math.round(plan.content.width * plan.dpr));
+  const outputHeight = Math.max(1, Math.round(plan.content.height * plan.dpr));
   const canvas = new OffscreenCanvas(outputWidth, outputHeight);
   const context = canvas.getContext('2d');
   if (!context) {
