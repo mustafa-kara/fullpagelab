@@ -6,7 +6,7 @@ import type { CaptureResultService } from '../result/types';
 import { VisibleTabBackend } from './backends/visible-tab';
 import { dataUrlToBlob, stitchVerticalTiles, type CaptureTile } from './image';
 import { CaptureTimeoutError, appendJobLog, phaseDeadlineMs, withPhaseDeadline } from './job';
-import { createCapturePlan, createVerticalPlan, extendCapturePlan, recomputeStepFromAck } from './plan';
+import { createCapturePlan, createVerticalPlan, extendCapturePlan, recomputeStepFromAck, trimPlanToTiles } from './plan';
 import { createCaptureRateLimiter } from './rate-limiter';
 import { assertAcknowledgedProgress } from './scroll-progress';
 import { CaptureValidationError, ensureActiveCaptureTab, validateCaptureTab } from './validation';
@@ -254,7 +254,20 @@ export function createCaptureCoordinator({
           if (!scrollResult) throw new Error('Page scrolling is unavailable on this build.');
           const actual = 'actual' in scrollResult ? scrollResult.actual : scrollResult;
           let observedDocument = 'actual' in scrollResult ? scrollResult.documentNow : undefined;
-          assertAcknowledgedProgress(plan, step, actual, previousAck);
+          try {
+            assertAcknowledgedProgress(plan, step, actual, previousAck);
+          } catch (error) {
+            // A page that stops scrolling early (virtualized content shrank,
+            // scripts locked the scroller) still produced a valid, seam-free
+            // top section. Keep it instead of failing the whole capture; only
+            // an unreachable first tile remains a hard error.
+            if (error instanceof CaptureValidationError && tiles.length > 0) {
+              plan = trimPlanToTiles(plan, tiles);
+              current = await update(current, { plan, progress: { done: tiles.length, total: tiles.length } }, 'The page stopped scrolling early; keeping the tiles captured so far.');
+              break;
+            }
+            throw error;
+          }
           const acknowledgedStep = recomputeStepFromAck(plan, step, actual);
           assertNotCancelled(current.jobId);
           const refreshedMetrics = await platform.scan?.(current.tabId, { findScrollContainers: false, findFixedElements: false, findIframes: false });
@@ -291,7 +304,7 @@ export function createCaptureCoordinator({
       const result = resultService
         ? await withPhaseDeadline('exporting', phaseDeadlineMs('exporting', current.request.options), resultService.save({ job: current, original: stitched, metrics, durationMs: elapsedMs(current, now()) }))
         : undefined;
-      return update(current, { phase: 'done', finishedAt: now(), progress: { done: plan.steps.length, total: plan.steps.length }, captureId: result?.id }, 'Capture ready.');
+      return update(current, { phase: 'done', finishedAt: now(), progress: { done: tiles.length, total: tiles.length }, captureId: result?.id }, 'Capture ready.');
     } finally {
       if (metrics) await platform.restore(current.tabId, metrics.scroll).catch(() => undefined);
     }

@@ -8,9 +8,20 @@ export interface FixedElementController {
   restore(): Promise<void>;
 }
 
-export function shouldHideFixedElement(strategy: FixedStrategy, tileIndex: number, tileCount: number): boolean {
+export function shouldHideFixedElement(
+  strategy: FixedStrategy,
+  tileIndex: number,
+  tileCount: number,
+  anchor?: FixedElementInfo['anchor'],
+): boolean {
   if (strategy === 'hideAll') return true;
   if (strategy !== 'hideAfterFirst') return false;
+  if (tileCount <= 1) return false;
+  // A top bar belongs to the first tile only and a bottom bar to the last tile
+  // only; repeating them on any other tile duplicates them inside the stitched
+  // image. Elements without a clear anchor keep the legacy first/last rule.
+  if (anchor === 'top') return tileIndex > 0;
+  if (anchor === 'bottom') return tileIndex < tileCount - 1;
   return tileCount > 2 && tileIndex > 0 && tileIndex < tileCount - 1;
 }
 
@@ -54,11 +65,16 @@ export function createFixedElementController(
         element.style.setProperty('visibility', 'hidden', 'important');
         continue;
       }
-      const hidden = shouldHideFixedElement(strategy, index, total);
+      const hidden = shouldHideFixedElement(strategy, index, total, info.anchor);
       if (hidden) {
-        element.style.setProperty('display', 'none', 'important');
+        // visibility keeps the element's layout box, so hiding an in-flow
+        // position:sticky bar cannot shift the rest of the page mid-capture.
+        element.style.setProperty('visibility', 'hidden', 'important');
+        element.style.setProperty('pointer-events', 'none', 'important');
         continue;
       }
+      element.style.removeProperty('visibility');
+      element.style.removeProperty('pointer-events');
       element.style.removeProperty('display');
       if (strategy === 'absolutize') {
         const rect = element.getBoundingClientRect();

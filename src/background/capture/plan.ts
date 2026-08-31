@@ -344,6 +344,21 @@ export function extendCapturePlan(plan: ScrollPlan, document: Size, limits?: Cap
   };
 }
 
+/**
+ * Shrinks a plan to the region its captured tiles actually cover. Used when a
+ * page stops scrolling early (virtualized lists shrink, scroll gets locked):
+ * the tiles collected so far still form a valid, seam-free top section.
+ */
+export function trimPlanToTiles(plan: ScrollPlan, tiles: ReadonlyArray<{ step: ScrollStep }>): ScrollPlan {
+  const coveredHeightCss = tiles.reduce(
+    (max, tile) => Math.max(max, (tile.step.placeAt.y + tile.step.cropFromViewport.height) / plan.dpr),
+    0,
+  );
+  const height = Math.max(1, Math.min(plan.content.height, Math.round(coveredHeightCss)));
+  const warnings = plan.warnings.includes('scroll-stalled-truncated') ? plan.warnings : [...plan.warnings, 'scroll-stalled-truncated'];
+  return { ...plan, content: { ...plan.content, height }, warnings };
+}
+
 export function recomputeStepFromAck(plan: ScrollPlan, step: ScrollStep, actual: Point): ScrollStep {
   const geometry: PlanGeometry = {
     root: plan.root,

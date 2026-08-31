@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tam Ekran Panelli Normal Sayfa</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; }
+      body { font: 700 28px/1 Arial, sans-serif; }
+      .panel { width: 100%; height: 85vh; overflow-y: auto; background: #e2e8f0; }
+      .panel-content { width: 100%; height: 3000px; display: grid; place-items: start; padding: 12px; color: #475569; }
+      .band[data-band-index] { display: grid; width: 100%; height: 200px; padding: 12px; place-items: start; color: #111827; }
+      .band[data-band-index="0"] { background: #ef4444; }
+      .band[data-band-index="1"] { background: #f97316; }
+      .band[data-band-index="2"] { background: #eab308; }
+      .band[data-band-index="3"] { background: #22c55e; }
+      .band[data-band-index="4"] { background: #06b6d4; }
+      .band[data-band-index="5"] { background: #3b82f6; }
+      .band[data-band-index="6"] { background: #8b5cf6; }
+      .band[data-band-index="7"] { background: #ec4899; }
+      .band[data-band-index="8"] { background: #14b8a6; }
+      .band[data-band-index="9"] { background: #84cc16; }
+      .band[data-band-index="10"] { background: #f59e0b; }
+      .band[data-band-index="11"] { background: #6366f1; }
+    </style>
+  </head>
+  <body>
+    <section class="panel" aria-label="Kaydırılabilir gömülü panel">
+      <div class="panel-content">3000 px iç panel içeriği</div>
+    </section>
+    <div class="band" data-band-index="0">Bant 0</div>
+    <div class="band" data-band-index="1">Bant 1</div>
+    <div class="band" data-band-index="2">Bant 2</div>
+    <div class="band" data-band-index="3">Bant 3</div>
+    <div class="band" data-band-index="4">Bant 4</div>
+    <div class="band" data-band-index="5">Bant 5</div>
+    <div class="band" data-band-index="6">Bant 6</div>
+    <div class="band" data-band-index="7">Bant 7</div>
+    <div class="band" data-band-index="8">Bant 8</div>
+    <div class="band" data-band-index="9">Bant 9</div>
+    <div class="band" data-band-index="10">Bant 10</div>
+    <div class="band" data-band-index="11">Bant 11</div>
+  </body>
+</html>

@@ -1,16 +1,35 @@
 import type { ElementInfo, FixedElementInfo, IframeInfo, PageMetrics, ScanOptions } from '../shared/types/capture';
 import type { Rect, Size } from '../shared/types/primitives';
 
+function matchesOnly(selector: string, element: Element): boolean {
+  try {
+    return document.querySelector(selector) === element;
+  } catch {
+    return false;
+  }
+}
+
 function selectorFor(element: Element): string {
   if (element === document.documentElement) return 'html';
+  const escape = globalThis.CSS?.escape ?? ((value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '\\$&'));
   const htmlElement = element as HTMLElement;
   if (htmlElement.id) {
-    const escape = globalThis.CSS?.escape ?? ((value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '\\$&'));
-    return `#${escape(htmlElement.id)}`;
+    const idSelector = `#${escape(htmlElement.id)}`;
+    if (matchesOnly(idSelector, element)) return idSelector;
   }
+  // Walk to the document root (or the nearest uniquely-id'd ancestor) so the
+  // structural chain is anchored and cannot resolve to a lookalike subtree.
   const parts: string[] = [];
   let current: Element | null = element;
-  while (current && current !== document.documentElement && parts.length < 6) {
+  while (current && current !== document.documentElement) {
+    const currentHtml = current as HTMLElement;
+    if (current !== element && currentHtml.id) {
+      const anchor = `#${escape(currentHtml.id)}`;
+      if (matchesOnly(anchor, current)) {
+        parts.unshift(anchor);
+        break;
+      }
+    }
     const tag = current.tagName.toLowerCase();
     const parent: HTMLElement | null = current.parentElement;
     if (!parent) {
@@ -141,7 +160,13 @@ export function scanPage(options: ScanOptions): PageMetrics {
     ? allElements.map((element) => fixedInfo(element, viewport)).filter((element): element is FixedElementInfo => element !== undefined).slice(0, 100)
     : [];
   const target = targetInfo(options);
-  const primaryScrollContainer = scrollContainers.find((container) => container.rect.width >= viewport.width * 0.8 && container.rect.height >= viewport.height * 0.8);
+  // A large embedded panel (map, feed, table) may be scrollable without being
+  // the page scroller. Only treat a container as the capture root when the
+  // document itself has no vertical overflow to scroll through.
+  const documentScrollable = rootHeight > viewport.height + 1;
+  const primaryScrollContainer = documentScrollable
+    ? undefined
+    : scrollContainers.find((container) => container.rect.width >= viewport.width * 0.8 && container.rect.height >= viewport.height * 0.8);
   const documentSize = { width: rootWidth, height: rootHeight };
   return {
     url: location.href,

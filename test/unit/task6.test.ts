@@ -256,24 +256,36 @@ describe('Task 6 capture contracts', () => {
     expect(states.at(-1)?.error?.code).toBe('E_VALIDATION');
   });
 
-  it('stops before duplicate tiles when a later scroll command is ignored', async () => {
-    const states: JobState[] = [];
-    const jobs = createJobs(states);
-    const tab = { id: 7, windowId: 3, url: 'https://example.com/docs' };
-    const captureVisibleTab = vi.fn(async () => 'data:image/png;base64,AAAA');
-    const platform: CapturePlatform = {
-      queryActiveTab: vi.fn(async () => tab),
-      captureVisibleTab,
-      download: vi.fn(async () => 1),
-      scan: vi.fn(async () => metrics()),
-      scroll: vi.fn(async () => ({ actual: { x: 0, y: 0 }, documentNow: metrics().document, elapsedMs: 0 })),
-      restore: vi.fn(async () => undefined),
-    };
-    const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
+  it('keeps the captured tiles when a later scroll command is ignored', async () => {
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 800, height: 600, close: () => undefined })));
+    vi.stubGlobal('OffscreenCanvas', class {
+      getContext() { return { drawImage: () => undefined }; }
+      convertToBlob() { return Promise.resolve(new Blob(['png'], { type: 'image/png' })); }
+    });
+    try {
+      const states: JobState[] = [];
+      const jobs = createJobs(states);
+      const tab = { id: 7, windowId: 3, url: 'https://example.com/docs' };
+      const captureVisibleTab = vi.fn(async () => 'data:image/png;base64,AAAA');
+      const platform: CapturePlatform = {
+        queryActiveTab: vi.fn(async () => tab),
+        captureVisibleTab,
+        download: vi.fn(async () => 1),
+        scan: vi.fn(async () => metrics()),
+        scroll: vi.fn(async () => ({ actual: { x: 0, y: 0 }, documentNow: metrics().document, elapsedMs: 0 })),
+        restore: vi.fn(async () => undefined),
+      };
+      const coordinator = createCaptureCoordinator({ platform, jobs, now: () => '2026-08-20T00:00:00.000Z' });
 
-    await expect(coordinator.start({ request: captureRequest('fullPage') })).rejects.toThrow('duplicate tiles');
-    expect(captureVisibleTab).toHaveBeenCalledTimes(1);
-    expect(states.at(-1)?.error?.code).toBe('E_VALIDATION');
+      await expect(coordinator.start({ request: captureRequest('fullPage') })).resolves.toMatchObject({ jobId: expect.any(String) });
+      expect(captureVisibleTab).toHaveBeenCalledTimes(1);
+      const finished = states.at(-1);
+      expect(finished?.phase).toBe('done');
+      expect(finished?.plan?.warnings).toContain('scroll-stalled-truncated');
+      expect(finished?.plan?.content.height).toBe(600);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('hides the page progress overlay before the first screenshot', async () => {
