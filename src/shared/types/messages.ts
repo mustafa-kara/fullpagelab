@@ -1,4 +1,5 @@
 import type { AgentScrollRequest, CaptureRequest, CanvasLimits, JobProgress, JobState, PageMetrics, PreparePlan, PreparedState, ScanOptions } from './capture';
+import type { EditorDocument } from './editor';
 import type { ExportRequest, ExportResult } from './export';
 import type { CaptureRecord, TemporaryResultPayload } from './history';
 import type { ErrorInfo, Id, Point, Size } from './primitives';
@@ -27,6 +28,8 @@ export interface MsgMap {
   'onboarding.openDemo': { req: void; res: { tabId: number } };
   'capture.cancel': { req: { jobId: Id }; res: void };
   'history.get': { req: { id: Id }; res: CaptureRecord | null };
+  'editor.save': { req: { captureId: Id; doc: EditorDocument; flattened: { dataUrl: string; mime: string }; saveAsNew: boolean }; res: { captureId: Id; createdNewRecord: boolean } };
+  'editor.load': { req: { captureId: Id }; res: EditorDocument | null };
   'result.get': { req: { id: Id }; res: TemporaryResultPayload | null };
   'export.request': { req: ExportRequest; res: ExportResult };
   'export.copy': { req: { captureId: Id; stripIndex?: number }; res: { copiedAs: 'png' } };
