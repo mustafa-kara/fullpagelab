@@ -59,4 +59,35 @@ describe('editor document', () => {
     const withRedact = addLayer(doc(), createAnnotation('redact', rect, { id: 'r1' }));
     expect(withRedact.layers.filter((layer) => layer.type === 'redact')).toHaveLength(1);
   });
+
+  it('leaves the document alone when moving an unknown id', () => {
+    const before = addLayer(doc(), createAnnotation('rect', rect, { id: 'a1' }));
+    expect(moveLayer(before, 'missing', 0)).toBe(before);
+  });
+
+  it('clamps an out-of-range move index to the end of the list', () => {
+    let next = doc();
+    for (const id of ['a', 'b']) next = addLayer(next, createAnnotation('rect', rect, { id }));
+    expect(moveLayer(next, 'a', 99).layers.map((layer) => layer.id)).toEqual(['b', 'a']);
+  });
+
+  it('stamps the current time when no timestamp is supplied', () => {
+    const created = createDocument({ captureId: 'capture-2', base: { ref, size } });
+    const added = addLayer(created, createAnnotation('rect', rect, { id: 'a1' }));
+    const updated = updateLayer(added, 'a1', { opacity: 0.4 });
+    const removed = removeLayer(updated, 'a1');
+    const moved = moveLayer(added, 'a1', 0);
+    for (const stamp of [created.updatedAt, added.updatedAt, updated.updatedAt, removed.updatedAt, moved.updatedAt]) {
+      expect(Number.isNaN(Date.parse(stamp))).toBe(false);
+    }
+  });
+
+  it('defaults the canvas background to white and honours an override', () => {
+    expect(createDocument({ captureId: 'c', base: { ref, size } }).canvas.background).toBe('#ffffff');
+    expect(createDocument({ captureId: 'c', base: { ref, size }, background: '#000000' }).canvas.background).toBe('#000000');
+  });
+
+  it('ignores non-marker layers when picking the next marker number', () => {
+    expect(nextMarkerNumber([createAnnotation('rect', rect, { id: 'a1' })])).toBe(1);
+  });
 });
