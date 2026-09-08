@@ -51,6 +51,16 @@ export function createHistoryService() {
     await db.captures.put(next);
     return next;
   };
+  const replaceFile = async (id: string, file: CaptureFile): Promise<CaptureRecord> => {
+    const record = await db.captures.get(id);
+    if (!record) throw new Error(`Capture not found: ${id}`);
+    const superseded = record.files.filter((existing) => existing.role === file.role);
+    const next = { ...record, files: [...record.files.filter((existing) => existing.role !== file.role), file], updatedAt: new Date().toISOString() };
+    await db.captures.put(next);
+    // Drop the blobs that are no longer referenced by the record.
+    for (const stale of superseded) await release(stale.ref).catch(() => undefined);
+    return next;
+  };
   const list = async (query: HistoryQuery): Promise<HistoryPage> => {
     const cursor = parseCursor(query.cursor);
     let collection = db.captures.orderBy('createdAt');
@@ -92,5 +102,5 @@ export function createHistoryService() {
     const estimate = await navigator.storage.estimate();
     return { usageBytes: estimate.usage ?? 0, quotaBytes: estimate.quota ?? 0, captures: await db.captures.count(), blobs: await db.blobs.count(), opfsBytes: await getOpfsBytes(), persisted: await navigator.storage.persisted() };
   };
-  return { put, get, update, addFile, list, delete: deleteRecords, gc, stats };
+  return { put, get, update, addFile, replaceFile, list, delete: deleteRecords, gc, stats };
 }

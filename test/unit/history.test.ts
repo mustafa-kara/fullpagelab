@@ -41,4 +41,37 @@ describe('history service', () => {
     expect(await db.captures.count()).toBe(0);
     expect(await db.blobs.count()).toBe(0);
   });
+
+  it('replaces an existing edited file instead of appending a second one', async () => {
+    const service = createHistoryService();
+    const base = await putBlob(new Blob(['full'], { type: 'image/png' }));
+    await service.put(record('capture-edit', '2026-09-08T00:00:00.000Z', base));
+
+    const firstEdit = await putBlob(new Blob(['edit-1'], { type: 'image/png' }));
+    const secondEdit = await putBlob(new Blob(['edit-2'], { type: 'image/png' }));
+    await service.replaceFile('capture-edit', { id: 'e1', role: 'edited', ref: firstEdit, format: 'png', createdAt: '2026-09-08T00:00:01.000Z' });
+    await service.replaceFile('capture-edit', { id: 'e2', role: 'edited', ref: secondEdit, format: 'png', createdAt: '2026-09-08T00:00:02.000Z' });
+
+    const stored = await service.get('capture-edit');
+    const edited = stored?.files.filter((file) => file.role === 'edited') ?? [];
+    expect(edited).toHaveLength(1);
+    expect(edited[0]?.ref.key).toBe(secondEdit.key);
+    expect(stored?.files.some((file) => file.role === 'full')).toBe(true);
+    expect(await db.blobs.get(firstEdit.key)).toBeUndefined();
+  });
+
+  it('throws when replacing a file on a missing capture', async () => {
+    const service = createHistoryService();
+    const ref = await putBlob(new Blob(['x'], { type: 'image/png' }));
+    await expect(service.replaceFile('missing', { id: 'e1', role: 'edited', ref, format: 'png', createdAt: '2026-09-08T00:00:00.000Z' })).rejects.toThrow('Capture not found');
+  });
+
+  it('updates the thumbnail through a record patch', async () => {
+    const service = createHistoryService();
+    const ref = await putBlob(new Blob(['thumb-1'], { type: 'image/webp' }));
+    await service.put(record('capture-thumb', '2026-09-08T00:00:00.000Z', ref));
+    const nextThumb = await putBlob(new Blob(['thumb-2'], { type: 'image/webp' }));
+    const next = await service.update('capture-thumb', { thumbnail: nextThumb });
+    expect(next.thumbnail.key).toBe(nextThumb.key);
+  });
 });
