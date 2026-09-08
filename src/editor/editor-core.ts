@@ -3,6 +3,7 @@ import { createAnnotation } from '../lib/editor/annotation';
 import { CommandStack } from '../lib/editor/command-stack';
 import { addLayer, nextMarkerNumber, removeLayer } from '../lib/editor/document';
 import { constrainRect, normalizeRect } from '../lib/editor/geometry';
+import { fitCanvasToLimits } from '../lib/editor/viewport';
 import type { Annotation, AnnotationType, EditorDocument, ToolId } from '../shared/types/editor';
 import { toFabricOptions } from './fabric-bridge';
 
@@ -22,6 +23,12 @@ export interface EditorHandle {
 
 export interface EditorDeps {
   onChange?(doc: EditorDocument): void;
+  /**
+   * Ready-to-load URL for the base image. The result page already resolves this
+   * for both stores, and captures kept out of history live in the session store,
+   * which `resolveBlob` refuses — so the caller must pass its URL through.
+   */
+  imageUrl?: string;
 }
 
 const drawableTools = new Set<AnnotationType>(['rect', 'ellipse', 'line', 'arrow', 'highlight', 'blur', 'pixelate', 'redact', 'text', 'freehand', 'marker']);
@@ -33,11 +40,18 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
   let tool: ToolId = 'select';
   let origin: { x: number; y: number } | null = null;
 
-  const objectUrl = await blobUrlFor(initial);
-  const baseImage = await FabricImage.fromURL(objectUrl);
+  // Only a URL this function created may be revoked; a caller-supplied one is theirs.
+  const ownedUrl = deps.imageUrl ? undefined : await blobUrlFor(initial);
+  const baseImage = await FabricImage.fromURL(deps.imageUrl ?? ownedUrl ?? '');
   baseImage.set({ selectable: false, evented: false, left: 0, top: 0 });
   canvas.backgroundImage = baseImage;
-  canvas.setDimensions({ width: initial.canvas.size.width, height: initial.canvas.size.height });
+  // A full-page capture is often taller than the browser's canvas limit, which
+  // would allocate a blank surface. Size the canvas to what the browser allows
+  // and let the viewport zoom show the whole image; annotations keep working in
+  // image coordinates because Fabric maps pointer events through that zoom.
+  const fitted = fitCanvasToLimits(initial.canvas.size);
+  canvas.setDimensions({ width: fitted.width, height: fitted.height });
+  canvas.setZoom(fitted.zoom);
   canvas.requestRenderAll();
 
   function emit(): void {
@@ -100,7 +114,7 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     },
     dispose() {
       void canvas.dispose();
-      URL.revokeObjectURL(objectUrl);
+      if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     },
   };
 }

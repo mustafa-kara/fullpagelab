@@ -11,10 +11,12 @@ const tools: ToolId[] = ['select', 'arrow', 'rect', 'ellipse', 'line', 'freehand
 export interface EditorPanelProps {
   doc: EditorDocument;
   captureId: string;
+  /** The URL the result page already resolved, so session-stored captures load too. */
+  imageUrl?: string;
   onClose(saved?: { captureId: string }): void;
 }
 
-export function EditorPanel({ doc, captureId, onClose }: EditorPanelProps): JSX.Element {
+export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<EditorHandle | null>(null);
   const [tool, setTool] = useState<ToolId>('select');
@@ -26,7 +28,7 @@ export function EditorPanel({ doc, captureId, onClose }: EditorPanelProps): JSX.
     let disposed = false;
     const element = canvasRef.current;
     if (!element) return;
-    void createEditor(element, doc).then((handle) => {
+    void createEditor(element, doc, { imageUrl }).then((handle) => {
       if (disposed) { handle.dispose(); return; }
       handleRef.current = handle;
       // Tools and Save only work once the canvas exists, so the toolbar advertises readiness for tests and screen readers.
@@ -38,7 +40,7 @@ export function EditorPanel({ doc, captureId, onClose }: EditorPanelProps): JSX.
       handleRef.current?.dispose();
       handleRef.current = null;
     };
-  }, [doc]);
+  }, [doc, imageUrl]);
 
   const chooseTool = (next: ToolId): void => {
     setTool(next);

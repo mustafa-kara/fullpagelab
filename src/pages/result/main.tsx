@@ -132,6 +132,12 @@ function ResultPage({ captureId }: { captureId: string }): JSX.Element {
 
   const files = useMemo(() => record ? resultFiles(record) : [], [record]);
   const currentFile = files[selectedStrip] ?? files[0];
+  // Keep one document identity per image: the editor rebuilds itself whenever
+  // this value changes, so a fresh object on every render would loop forever.
+  const editorDoc = useMemo(
+    () => currentFile && record ? createDocument({ captureId, base: { ref: currentFile.ref, size: record.size } }) : null,
+    [captureId, currentFile, record],
+  );
 
   const chooseFormat = (nextFormat: ResultFormat): void => {
     setFormat(nextFormat);
@@ -191,10 +197,11 @@ function ResultPage({ captureId }: { captureId: string }): JSX.Element {
     {record.warnings.length > 0 && <div class="result-warning" role="status">{record.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div>}
 
     <div class="result-layout">
-      {editing && currentFile
+      {editing && editorDoc
         ? <EditorPanel
             captureId={captureId}
-            doc={createDocument({ captureId, base: { ref: currentFile.ref, size: record.size } })}
+            doc={editorDoc}
+            imageUrl={currentUrl}
             onClose={(saved) => { setEditing(false); if (saved) window.location.search = `?id=${saved.captureId}`; }}
           />
         : <section class="viewer-column" aria-label={t('ui.result.preview')}>
