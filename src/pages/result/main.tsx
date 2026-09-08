@@ -1,11 +1,13 @@
 import { render } from 'preact';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { createDocument } from '../../lib/editor/document';
 import { resolveBlob } from '../../shared/db/blob-ref';
 import { t } from '../../shared/i18n';
 import { sendMessage } from '../../shared/messages';
 import type { ExportFormat, ExportPlan, PdfOptions } from '../../shared/types/export';
 import type { CaptureFile, CaptureRecord } from '../../shared/types/history';
+import { EditorPanel } from './editor-panel';
 import '../../ui/tokens.css';
 import './result.css';
 
@@ -85,6 +87,7 @@ function ResultPage({ captureId }: { captureId: string }): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,19 +185,25 @@ function ResultPage({ captureId }: { captureId: string }): JSX.Element {
     <header class="result-header">
       <div class="result-brand"><button class="icon-button" type="button" aria-label={t('ui.result.back')} onClick={() => window.history.back()}>←</button><span class="brand-mark">F</span><strong>FullPageLab</strong></div>
       <div class="result-heading"><h1 data-testid="result-title">{record.title}</h1><a href={record.url} target="_blank" rel="noreferrer">{record.domain}</a></div>
-      <div class="result-header-actions"><button class="button button-quiet" type="button" onClick={() => setToast(t('ui.result.editorUnavailable'))}>{t('ui.result.edit')}</button><button class="button button-quiet" type="button" onClick={() => setToast(t('ui.result.recaptureUnavailable'))}>{t('ui.result.recapture')}</button></div>
+      <div class="result-header-actions"><button class="button button-quiet" type="button" data-testid="result-edit" onClick={() => setEditing(true)}>{t('ui.result.edit')}</button><button class="button button-quiet" type="button" onClick={() => setToast(t('ui.result.recaptureUnavailable'))}>{t('ui.result.recapture')}</button></div>
     </header>
     <div class="result-meta" aria-label={t('ui.result.metadata')}><span>{meta}</span>{record.warnings.length > 0 && <span class="warning-badge">{t('ui.result.warning')}</span>}</div>
     {record.warnings.length > 0 && <div class="result-warning" role="status">{record.warnings.map((warning) => <span key={warning}>{warning}</span>)}</div>}
 
     <div class="result-layout">
-      <section class="viewer-column" aria-label={t('ui.result.preview')}>
+      {editing && currentFile
+        ? <EditorPanel
+            captureId={captureId}
+            doc={createDocument({ captureId, base: { ref: currentFile.ref, size: record.size } })}
+            onClose={(saved) => { setEditing(false); if (saved) window.location.search = `?id=${saved.captureId}`; }}
+          />
+        : <section class="viewer-column" aria-label={t('ui.result.preview')}>
         <div class="viewer-toolbar">
           <div class="viewer-toolbar-group"><button type="button" class="button button-quiet" onClick={() => setZoom(100)}>{t('ui.result.viewer.fit')}</button><button type="button" class="icon-button" aria-label={t('ui.result.viewer.zoomOut')} onClick={() => setZoom((value) => Math.max(25, value - 25))}>−</button><span class="zoom-value">{zoom}%</span><button type="button" class="icon-button" aria-label={t('ui.result.viewer.zoomIn')} onClick={() => setZoom((value) => Math.min(300, value + 25))}>+</button></div>
           {files.length > 1 && <div class="strip-nav"><button type="button" class="icon-button" aria-label={t('ui.result.viewer.previous')} disabled={selectedStrip === 0} onClick={() => setSelectedStrip((value) => Math.max(0, value - 1))}>←</button><span>{selectedStrip + 1} / {files.length}</span><button type="button" class="icon-button" aria-label={t('ui.result.viewer.next')} disabled={selectedStrip === files.length - 1} onClick={() => setSelectedStrip((value) => Math.min(files.length - 1, value + 1))}>→</button></div>}
         </div>
         <div class="viewer-stage" data-testid="result-viewer"><img src={currentUrl} alt={`${record.title} ${t(`ui.capture.mode.${record.mode}`)} screenshot`} style={{ width: `${zoom}%` }} /></div>
-      </section>
+          </section>}
 
       <aside class="export-panel" aria-label={t('ui.result.export.title')}>
         <div class="panel-heading"><span class="eyebrow">{t('ui.result.export.eyebrow')}</span><h2>{t('ui.result.export.title')}</h2></div>
@@ -207,7 +216,7 @@ function ResultPage({ captureId }: { captureId: string }): JSX.Element {
         {format === 'pdf' && showPdfOptions && <div class="pdf-options"><label class="field"><span>{t('ui.result.export.pdfMode')}</span><select value={plan.pdf?.mode ?? defaultPdf.mode} onChange={(event) => updatePdf({ mode: (event.currentTarget as HTMLSelectElement).value as PdfOptions['mode'] })}><option value="singleLongPage">{t('ui.result.export.singleLongPage')}</option><option value="paged">{t('ui.result.export.paged')}</option></select></label><label class="field"><span>{t('ui.result.export.pageSize')}</span><select value={typeof plan.pdf?.pageSize === 'string' ? plan.pdf.pageSize : 'auto'} onChange={(event) => updatePdf({ pageSize: (event.currentTarget as HTMLSelectElement).value as PdfOptions['pageSize'] })}><option value="auto">{t('ui.result.export.auto')}</option><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label><label class="check-field"><input type="checkbox" checked={plan.pdf?.smartPageBreaks ?? true} onChange={(event) => updatePdf({ smartPageBreaks: (event.currentTarget as HTMLInputElement).checked })} /><span>{t('ui.result.export.smartBreaks')}</span></label></div>}
         <div class="filename-preview"><span>{t('ui.result.export.preview')}</span><strong>{filenameForFormat(plan.filename, format)}</strong></div>
         <div class="export-actions"><button data-testid="download-button" class="button button-primary" type="button" disabled={busy !== null} onClick={() => void download()}>{busy === 'download' ? t('common.working') : `${formats.find((item) => item.id === format)?.label} ${t('ui.result.export.download')}`}</button><button class="button button-secondary" type="button" disabled={busy !== null} onClick={() => void copy()}>{busy === 'copy' ? t('common.working') : t('ui.result.export.copy')}</button></div>
-        <div class="panel-links"><button type="button" onClick={() => window.print()}>{t('ui.result.print')}</button><button type="button" onClick={() => setToast(t('ui.result.editorUnavailable'))}>{t('ui.result.edit')}</button></div>
+        <div class="panel-links"><button type="button" onClick={() => window.print()}>{t('ui.result.print')}</button><button type="button" onClick={() => setEditing(true)}>{t('ui.result.edit')}</button></div>
         <p class="privacy-note">{t('privacy_tagline')}</p>
       </aside>
     </div>

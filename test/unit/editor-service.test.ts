@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createEditorService } from '../../src/background/editor/service';
-import type { CaptureRecord } from '../../src/shared/types/history';
 import type { EditorDocument } from '../../src/shared/types/editor';
+import type { CaptureRecord } from '../../src/shared/types/history';
 
 const ref = { store: 'idb', key: 'blob-1', mime: 'image/png', bytes: 3 } as const;
 
