@@ -86,4 +86,60 @@ describe('export pipeline', () => {
     expect(addFile).not.toHaveBeenCalled();
     expect((await temporary.payload('capture-1'))?.files).toHaveLength(2);
   });
+
+  it('returns the requested strip even when an edited file exists', async () => {
+    const fullRef = await putBlob(new Blob(['full'], { type: 'image/png' }));
+    const stripRef = await putBlob(new Blob(['strip'], { type: 'image/png' }));
+    const editedRef = await putBlob(new Blob(['edited'], { type: 'image/png' }));
+    const base = record(fullRef);
+    const stored: CaptureRecord = {
+      ...base,
+      files: [
+        ...base.files,
+        { id: 'file-strip', role: 'strip', index: 1, ref: stripRef, format: 'png', createdAt: '2026-08-20T11:22:33.000Z' },
+        { id: 'file-edited', role: 'edited', ref: editedRef, format: 'png', createdAt: '2026-08-20T11:22:33.000Z' },
+      ],
+    };
+    const resolve = vi.fn(async (ref: { key: string }) => new Blob([ref.key], { type: 'image/png' }));
+    const pipeline = createExportPipeline({
+      history: { get: async () => stored, addFile: async () => stored },
+      resolve,
+      encodeImage: async (source: Blob) => source,
+      download: vi.fn(async () => 1),
+      now: () => new Date('2026-08-20T11:22:33.000Z'),
+    });
+
+    await pipeline.run({
+      captureId: stored.id,
+      stripIndex: 1,
+      plan: { ...structuredClone(defaultSettings.export), targets: ['download'], format: 'png' },
+    });
+
+    expect(resolve).toHaveBeenCalledWith(expect.objectContaining({ key: stripRef.key }));
+  });
+
+  it('falls back to the edited file when no strip is requested', async () => {
+    const fullRef = await putBlob(new Blob(['full'], { type: 'image/png' }));
+    const editedRef = await putBlob(new Blob(['edited'], { type: 'image/png' }));
+    const base = record(fullRef);
+    const stored: CaptureRecord = {
+      ...base,
+      files: [...base.files, { id: 'file-edited', role: 'edited', ref: editedRef, format: 'png', createdAt: '2026-08-20T11:22:33.000Z' }],
+    };
+    const resolve = vi.fn(async (ref: { key: string }) => new Blob([ref.key], { type: 'image/png' }));
+    const pipeline = createExportPipeline({
+      history: { get: async () => stored, addFile: async () => stored },
+      resolve,
+      encodeImage: async (source: Blob) => source,
+      download: vi.fn(async () => 1),
+      now: () => new Date('2026-08-20T11:22:33.000Z'),
+    });
+
+    await pipeline.run({
+      captureId: stored.id,
+      plan: { ...structuredClone(defaultSettings.export), targets: ['download'], format: 'png' },
+    });
+
+    expect(resolve).toHaveBeenCalledWith(expect.objectContaining({ key: editedRef.key }));
+  });
 });

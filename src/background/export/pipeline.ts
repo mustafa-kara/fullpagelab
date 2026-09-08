@@ -37,12 +37,13 @@ const defaultPdfOptions: PdfOptions = {
 };
 
 function sourceFile(record: CaptureRecord, stripIndex?: number): CaptureFile {
-  const edited = record.files.find((file) => file.role === 'edited');
-  if (edited) return edited;
+  // An explicitly requested strip wins over the edited composite, which represents the whole capture.
   if (stripIndex !== undefined) {
     const strip = record.files.find((file) => file.role === 'strip' && file.index === stripIndex);
     if (strip) return strip;
   }
+  const edited = record.files.find((file) => file.role === 'edited');
+  if (edited) return edited;
   const full = record.files.find((file) => file.role === 'full');
   if (full) return full;
   const strip = record.files.find((file) => file.role === 'strip');
