@@ -11,6 +11,7 @@ import { createCaptureCoordinator, type CaptureTab } from './capture/coordinator
 import { blobToDataUrl } from './capture/image';
 import { createCommandController } from './commands';
 import { createContextMenuController } from './context-menus';
+import { createEditorService } from './editor/service';
 import { createExportPipeline } from './export/pipeline';
 import { createHistoryService } from './history/service';
 import { createJobStateStore } from './job-state';
@@ -45,6 +46,7 @@ const captureResultService = createCaptureResultService({
   appVersion: '0.1.0',
 });
 const exportPipeline = createExportPipeline({ history: historyService, temporary: temporaryResultStore });
+const editorService = createEditorService({ history: historyService });
 
 async function toCaptureTab(tab: chrome.tabs.Tab | undefined): Promise<CaptureTab | undefined> {
   if (tab?.id === undefined || tab.windowId === undefined) return undefined;
@@ -361,6 +363,16 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
           const payload = message.payload as { id?: string };
           if (!payload || typeof payload.id !== 'string') throw new Error('Capture id is required.');
           sendResponse(reply(message, await captureResultService.get(payload.id)));
+          return;
+        }
+        case 'editor.save': {
+          sendResponse(reply(message, await editorService.save(message.payload as MessageMap['editor.save']['req'])));
+          return;
+        }
+        case 'editor.load': {
+          const payload = message.payload as MessageMap['editor.load']['req'];
+          if (!payload || typeof payload.captureId !== 'string') throw new Error('Capture id is required.');
+          sendResponse(reply(message, await editorService.load(payload.captureId)));
           return;
         }
         case 'result.get': {
