@@ -38,6 +38,7 @@ function deps(overrides: Record<string, unknown> = {}) {
     saveDoc: vi.fn(async (next: EditorDocument) => { docs.set(next.captureId, next); }),
     loadDoc: vi.fn(async (id: string) => docs.get(id) ?? null),
     makeThumbnail: vi.fn(async () => ({ ...ref, key: 'thumb-new', mime: 'image/webp' })),
+    retain: vi.fn(async () => undefined),
     createId: vi.fn(() => 'capture-2'),
     now: () => '2026-09-09T00:00:00.000Z',
     ...overrides,
@@ -55,6 +56,33 @@ describe('editor service', () => {
     expect(result).toEqual({ captureId: 'capture-2', createdNewRecord: true });
     expect(dependencies.records.get('capture-2')?.source.editedFrom).toBe('capture-1');
     expect(dependencies.records.get('capture-1')?.files.some((file) => file.role === 'edited')).toBe(false);
+  });
+
+  it('retains the blobs the clone shares with the original so deleting one keeps the other readable', async () => {
+    const dependencies = deps();
+    const service = createEditorService(dependencies as never);
+    await service.save({ captureId: 'capture-1', doc: doc('capture-1'), flattened, saveAsNew: true });
+
+    // The clone reuses the original's full-size image and, when no new thumbnail
+    // is produced, its thumbnail too; without a refCount bump, deleting either
+    // record would destroy the blob the other one still points at.
+    expect(dependencies.retain).toHaveBeenCalledWith(expect.objectContaining({ key: 'blob-1' }));
+  });
+
+  it('retains the shared thumbnail when no new one is generated', async () => {
+    const dependencies = deps({ makeThumbnail: vi.fn(async () => undefined) });
+    const service = createEditorService(dependencies as never);
+    await service.save({ captureId: 'capture-1', doc: doc('capture-1'), flattened, saveAsNew: true });
+
+    expect(dependencies.retain).toHaveBeenCalledWith(expect.objectContaining({ key: 'thumb-1' }));
+  });
+
+  it('does not retain blobs when saving onto the same record', async () => {
+    const dependencies = deps();
+    const service = createEditorService(dependencies as never);
+    await service.save({ captureId: 'capture-1', doc: doc('capture-1'), flattened, saveAsNew: false });
+
+    expect(dependencies.retain).not.toHaveBeenCalled();
   });
 
   it('writes the edited file onto the same record when not saving as new', async () => {

@@ -1,4 +1,4 @@
-import { putBlob as defaultPutBlob } from '../../shared/db/blob-ref';
+import { putBlob as defaultPutBlob, retain as defaultRetain } from '../../shared/db/blob-ref';
 import { db } from '../../shared/db/schema';
 import { createId as defaultCreateId, nowIso } from '../../shared/ids';
 import type { EditorDocument } from '../../shared/types/editor';
@@ -24,6 +24,7 @@ export interface EditorServiceDependencies {
   saveDoc?: (doc: EditorDocument) => Promise<void>;
   loadDoc?: (captureId: string) => Promise<EditorDocument | null>;
   makeThumbnail?: (blob: Blob) => Promise<BlobRef | undefined>;
+  retain?: (ref: BlobRef) => Promise<void>;
   createId?: () => string;
   now?: () => string;
 }
@@ -34,6 +35,7 @@ export function createEditorService({
   saveDoc = async (doc) => { await db.editorDocs.put(doc); },
   loadDoc = async (captureId) => (await db.editorDocs.get(captureId)) ?? null,
   makeThumbnail = async () => undefined,
+  retain = defaultRetain,
   createId = defaultCreateId,
   now = nowIso,
 }: EditorServiceDependencies) {
@@ -50,15 +52,20 @@ export function createEditorService({
 
       if (saveAsNew) {
         const cloneId = createId();
+        const inheritedFiles = record.files.filter((file) => file.role !== 'edited');
         const clone: CaptureRecord = {
           ...structuredClone(record),
           id: cloneId,
           createdAt: timestamp,
           updatedAt: timestamp,
-          files: [...record.files.filter((file) => file.role !== 'edited'), editedFile],
+          files: [...inheritedFiles, editedFile],
           thumbnail: thumbnail ?? record.thumbnail,
           source: { ...record.source, editedFrom: record.id },
         };
+        // The clone points at the original's blobs. Without a refCount bump,
+        // deleting either record would drop the pixels the other still needs.
+        for (const file of inheritedFiles) await retain(file.ref);
+        if (!thumbnail) await retain(record.thumbnail);
         await history.put(clone);
         await saveDoc({ ...doc, captureId: cloneId, updatedAt: timestamp });
         return { captureId: cloneId, createdNewRecord: true };
