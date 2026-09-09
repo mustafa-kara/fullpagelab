@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { constrainRect, normalizeRect, padRect } from '../../src/lib/editor/geometry';
+import { constrainRect, normalizeRect, padRect, scaledRect } from '../../src/lib/editor/geometry';
 
 describe('editor geometry', () => {
   it('normalizes a rectangle dragged up and to the left', () => {
@@ -20,5 +20,21 @@ describe('editor geometry', () => {
 
   it('pads a rectangle for hit testing without going negative', () => {
     expect(padRect({ x: 2, y: 2, width: 10, height: 10 }, 6)).toEqual({ x: 0, y: 0, width: 18, height: 18 });
+  });
+});
+
+describe('scaledRect', () => {
+  it('reports the size a resized object actually occupies', () => {
+    // Fabric records a resize in scaleX/scaleY and leaves width/height alone,
+    // so reading the raw dimensions reports the original size.
+    expect(scaledRect({ left: 10, top: 20, width: 100, height: 50, scaleX: 2, scaleY: 3 })).toEqual({ x: 10, y: 20, width: 200, height: 150 });
+  });
+
+  it('treats a missing scale as 1', () => {
+    expect(scaledRect({ left: 0, top: 0, width: 40, height: 25 })).toEqual({ x: 0, y: 0, width: 40, height: 25 });
+  });
+
+  it('reports a positive size for a mirrored object', () => {
+    expect(scaledRect({ left: 5, top: 5, width: 30, height: 30, scaleX: -2, scaleY: 1 })).toEqual({ x: 5, y: 5, width: 60, height: 30 });
   });
 });

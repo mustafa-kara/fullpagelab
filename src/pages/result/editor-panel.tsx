@@ -1,12 +1,20 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { EditorHandle } from '../../editor/editor-core';
+import type { EditorHandle, EditorStyle } from '../../editor/editor-core';
 import { createEditor } from '../../editor/index';
 import { t } from '../../shared/i18n';
 import { sendMessage } from '../../shared/messages';
 import type { EditorDocument, ToolId } from '../../shared/types/editor';
 
 const tools: ToolId[] = ['select', 'arrow', 'rect', 'ellipse', 'line', 'freehand', 'text', 'highlight', 'blur', 'pixelate', 'redact'];
+
+/** Palette covering the colours that stay legible over typical page content. */
+const colors = ['#FF1493', '#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#0A84FF', '#5856D6', '#111111', '#FFFFFF'];
+
+const strokeWidths = [2, 4, 8, 14];
+
+/** Tools whose appearance the style controls cannot change. */
+const unstyledTools = new Set<ToolId>(['select', 'blur', 'pixelate', 'redact']);
 
 export interface EditorPanelProps {
   doc: EditorDocument;
@@ -26,6 +34,8 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [zoom, setZoomValue] = useState(1);
+  const [style, setStyle] = useState<EditorStyle>({ color: colors[0]!, strokeWidth: 4 });
+  const [docState, setDocState] = useState<EditorDocument>(doc);
 
   useEffect(() => {
     let disposed = false;
@@ -35,10 +45,12 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
     // The stage is what the capture has to fit inside when the editor opens.
     const stage = stageRef.current?.getBoundingClientRect();
     const viewport = stage ? { width: Math.max(1, stage.width - 40), height: Math.max(1, stage.height - 40) } : undefined;
-    void createEditor(element, doc, { imageUrl, viewport }).then((handle) => {
+    void createEditor(element, doc, { imageUrl, viewport, onChange: setDocState }).then((handle) => {
       if (disposed) { handle.dispose(); return; }
       handleRef.current = handle;
       setZoomValue(handle.getZoom());
+      setStyle(handle.getStyle());
+      setDocState(handle.getDocument());
       // Tools and Save only work once the canvas exists, so the toolbar advertises readiness for tests and screen readers.
       setReady(true);
     }).catch((error: unknown) => {
@@ -61,6 +73,13 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
     if (!handle) return;
     handle.setZoom(next);
     setZoomValue(handle.getZoom());
+  };
+
+  const changeStyle = (next: Partial<EditorStyle>): void => {
+    const handle = handleRef.current;
+    if (!handle) return;
+    handle.setStyle(next);
+    setStyle(handle.getStyle());
   };
 
   const chooseTool = (next: ToolId): void => {
@@ -90,6 +109,10 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
     }
   };
 
+  // Redaction must stay opaque black, and the pixel effects show the capture's
+  // own pixels, so a colour or width would have nothing to act on.
+  const styleDisabled = unstyledTools.has(tool);
+
   const privacyNote = tool === 'blur' || tool === 'pixelate' ? t('ui.editor.blurWarning') : tool === 'redact' ? t('ui.editor.redactWarning') : t('ui.editor.keepOriginal');
 
   return <section class="editor-panel" aria-label={t('ui.editor.title')}>
@@ -108,7 +131,42 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
       <button type="button" class="button button-quiet" data-testid="editor-cancel" onClick={() => onClose()}>{t('ui.editor.cancel')}</button>
       <button type="button" class="button button-primary" data-testid="editor-save" disabled={busy || !ready} onClick={() => void save()}>{busy ? t('ui.editor.saving') : t('ui.editor.save')}</button>
     </div>
+    <div class="editor-style" data-testid="editor-style">
+      <div class="editor-swatches" role="radiogroup" aria-label={t('ui.editor.color')}>
+        {colors.map((item) => <button
+          key={item}
+          type="button"
+          class={style.color === item ? 'editor-swatch active' : 'editor-swatch'}
+          data-color={item}
+          role="radio"
+          aria-checked={style.color === item}
+          aria-label={item}
+          style={{ background: item }}
+          disabled={!ready || styleDisabled}
+          onClick={() => changeStyle({ color: item })}
+        />)}
+      </div>
+      <div class="editor-widths" role="radiogroup" aria-label={t('ui.editor.strokeWidth')}>
+        {strokeWidths.map((item) => <button
+          key={item}
+          type="button"
+          class={style.strokeWidth === item ? 'editor-width active' : 'editor-width'}
+          data-width={item}
+          role="radio"
+          aria-checked={style.strokeWidth === item}
+          aria-label={`${item}`}
+          disabled={!ready || styleDisabled}
+          onClick={() => changeStyle({ strokeWidth: item })}
+        ><span style={{ height: `${Math.min(item, 12)}px`, background: style.color }} /></button>)}
+      </div>
+      {styleDisabled && <span class="editor-style-hint">{t('ui.editor.styleUnavailable')}</span>}
+    </div>
     <p class="editor-privacy-note" data-testid="editor-privacy-note">{privacyNote}</p>
+    {/* The document state the editor is about to save, so tests can assert on
+        what will be persisted rather than only on what is painted. */}
+    <span hidden data-testid="editor-object-count">{docState.layers.length}</span>
+    <span hidden data-testid="editor-doc-text">{docState.layers.filter((layer) => layer.type === 'text').map((layer) => layer.text).join('|')}</span>
+    <span hidden data-testid="editor-doc-rect">{docState.layers.map((layer) => `${Math.round(layer.rect.x)},${Math.round(layer.rect.y)}`).join('|')}</span>
     <div class="editor-stage" ref={stageRef}><canvas ref={canvasRef} hidden={failed} />{failed && <p class="editor-stage-error" role="alert" data-testid="editor-load-error">{message || t('error.E_UNKNOWN.body')}</p>}</div>
     {message && <div class="toast" role="status" aria-live="polite">{message}</div>}
   </section>;

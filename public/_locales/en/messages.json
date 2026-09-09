@@ -442,5 +442,17 @@
   },
   "ui_editor_zoomActual": {
     "message": "100%"
+  },
+  "ui_editor_color": {
+    "message": "Colour"
+  },
+  "ui_editor_strokeWidth": {
+    "message": "Line thickness"
+  },
+  "ui_editor_styleUnavailable": {
+    "message": "This tool has a fixed appearance."
+  },
+  "ui_editor_delete": {
+    "message": "Delete selected"
   }
 }

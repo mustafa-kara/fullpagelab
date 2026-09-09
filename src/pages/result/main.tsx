@@ -55,8 +55,13 @@ function formatDate(value: string): string {
 }
 
 function resultFiles(record: CaptureRecord): CaptureFile[] {
+  // An edited version replaces the original in the viewer. Both roles carry no
+  // strip index, so sorting alone left them tied and the unedited capture won,
+  // which made a save look as though it had done nothing.
+  const edited = record.files.filter((file) => file.role === 'edited');
+  if (edited.length > 0) return edited;
   return record.files
-    .filter((file) => file.role === 'full' || file.role === 'strip' || file.role === 'edited')
+    .filter((file) => file.role === 'full' || file.role === 'strip')
     .sort((left, right) => (left.index ?? -1) - (right.index ?? -1));
 }
 

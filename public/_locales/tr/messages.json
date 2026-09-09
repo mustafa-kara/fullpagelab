@@ -442,5 +442,17 @@
   },
   "ui_editor_zoomActual": {
     "message": "100%"
+  },
+  "ui_editor_color": {
+    "message": "Renk"
+  },
+  "ui_editor_strokeWidth": {
+    "message": "Çizgi kalınlığı"
+  },
+  "ui_editor_styleUnavailable": {
+    "message": "Bu aracın görünümü sabittir."
+  },
+  "ui_editor_delete": {
+    "message": "Seçileni sil"
   }
 }

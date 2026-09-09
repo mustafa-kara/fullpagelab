@@ -14,6 +14,10 @@ const editorHandle = {
   getDocument: () => ({ version: 1, captureId: 'capture-1', layers: [] }),
   setZoom: vi.fn(),
   getZoom: () => 1,
+  fitZoom: () => 1,
+  imageSize: () => ({ width: 100, height: 100 }),
+  setStyle: vi.fn(),
+  getStyle: () => ({ color: '#FF1493', strokeWidth: 4 }),
   toDataUrl: () => 'data:image/png;base64,AAAA',
   dispose: vi.fn(),
 };

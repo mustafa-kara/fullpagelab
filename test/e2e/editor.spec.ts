@@ -107,7 +107,6 @@ test('loads the base image for a capture kept out of history', async ({}, testIn
   // A scale factor other than 1 is what most laptops report. Fabric sizes its
   // backing store by that ratio, so a DPR-1-only test never exercised the sizes
   // the editor actually allocates on a real machine.
-  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo, { deviceScaleFactor: 2 });
   try {
     const driver = await context.newPage();
@@ -145,7 +144,6 @@ for (const [fixture, deviceScaleFactor] of [['very-long.html', 1], ['long.html',
   test(`shows the capture in the editor for ${fixture} at scale factor ${deviceScaleFactor}`, async ({}, testInfo) => {
     // Stitching a 34,000px capture and decoding it into the editor runs past the
     // default budget on a loaded machine.
-    testInfo.setTimeout(120_000);
     const { context, extensionId } = await launchExtension(testInfo, { deviceScaleFactor });
     try {
       const driver = await context.newPage();
@@ -230,7 +228,6 @@ async function surfaceBox(page: Page): Promise<{ x: number; y: number; width: nu
  */
 for (const tool of ['arrow', 'rect', 'ellipse', 'line', 'freehand', 'highlight', 'blur', 'pixelate', 'redact'] as const) {
   test(`the ${tool} tool draws something visible`, async ({}, testInfo) => {
-    testInfo.setTimeout(120_000);
     const { context, extensionId } = await launchExtension(testInfo);
     try {
       const driver = await context.newPage();
@@ -250,7 +247,6 @@ for (const tool of ['arrow', 'rect', 'ellipse', 'line', 'freehand', 'highlight',
 }
 
 test('freehand follows the pointer instead of drawing a rectangle', async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo);
   try {
     const driver = await context.newPage();
@@ -316,7 +312,6 @@ test('freehand follows the pointer instead of drawing a rectangle', async ({}, t
 });
 
 test('the arrow tool draws a head at the end of the drag', async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo);
   try {
     const driver = await context.newPage();
@@ -374,7 +369,6 @@ test('the arrow tool draws a head at the end of the drag', async ({}, testInfo) 
 });
 
 test('the text tool accepts typing', async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo);
   try {
     const driver = await context.newPage();
@@ -395,7 +389,6 @@ test('the text tool accepts typing', async ({}, testInfo) => {
 });
 
 test('blur and pixelate obscure the capture underneath', async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo);
   try {
     const driver = await context.newPage();
@@ -418,7 +411,6 @@ test('blur and pixelate obscure the capture underneath', async ({}, testInfo) =>
 });
 
 test('the capture opens fitted to the stage and the zoom controls work', async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo);
   try {
     const driver = await context.newPage();
@@ -438,6 +430,323 @@ test('the capture opens fitted to the stage and the zoom controls work', async (
     expect(await readZoom(), 'fit must return to the fitted zoom').toBe(fitted);
     await page.locator('[data-testid="editor-zoom-actual"]').click();
     expect(await readZoom(), 'the 100% control must show the capture at natural size').toBe(100);
+  } finally {
+    await context.close();
+  }
+});
+
+/** Selects an object by clicking its centre with the select tool. */
+async function selectAt(page: Page, fx: number, fy: number): Promise<void> {
+  await page.locator('[data-tool="select"]').click();
+  const surface = await surfaceBox(page);
+  const stage = await page.locator('.editor-stage').boundingBox();
+  if (!stage) throw new Error('The editor stage has no layout box.');
+  const left = Math.max(surface.x, stage.x) + 4;
+  const top = Math.max(surface.y, stage.y) + 4;
+  const width = Math.min(surface.x + surface.width, stage.x + stage.width) - left - 8;
+  const height = Math.min(surface.y + surface.height, stage.y + stage.height) - top - 8;
+  await page.mouse.click(left + fx * width, top + fy * height);
+  await page.waitForTimeout(200);
+}
+
+/** Drags from one fraction of the visible surface to another. */
+async function dragFromTo(page: Page, from: [number, number], to: [number, number]): Promise<void> {
+  const surface = await surfaceBox(page);
+  const stage = await page.locator('.editor-stage').boundingBox();
+  if (!stage) throw new Error('The editor stage has no layout box.');
+  const left = Math.max(surface.x, stage.x) + 4;
+  const top = Math.max(surface.y, stage.y) + 4;
+  const width = Math.min(surface.x + surface.width, stage.x + stage.width) - left - 8;
+  const height = Math.min(surface.y + surface.height, stage.y + stage.height) - top - 8;
+  await page.mouse.move(left + from[0] * width, top + from[1] * height);
+  await page.mouse.down();
+  await page.mouse.move(left + to[0] * width, top + to[1] * height, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+}
+
+/** Number of Fabric objects on the canvas, excluding the background. */
+async function objectCount(page: Page): Promise<number> {
+  return page.locator('[data-testid="editor-object-count"]').evaluate((el) => Number(el.textContent));
+}
+
+test('moving a blur region re-cuts it from its new position', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page, stage } = await openEditor(context, extensionId, driver, testInfo);
+
+    // Blur a region of the first colour band, then drag it onto a different
+    // band. A region that carries its original pixels shows the first band's
+    // colour in its new place — which both re-exposes what it covered and
+    // transplants a copy of it somewhere the user never looked.
+    await drawWith(page, 'blur', [[0.1, 0.05], [0.45, 0.2]]);
+    await selectAt(page, 0.27, 0.12);
+    await dragFromTo(page, [0.27, 0.12], [0.27, 0.75]);
+
+    const carried = await page.locator('.editor-stage canvas.lower-canvas').evaluate((canvas: HTMLCanvasElement) => {
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) throw new Error('Editor canvas has no 2D context.');
+      // Compare the moved region against the band it now sits on: a stale
+      // snapshot differs sharply from its surroundings.
+      const inside = context.getImageData(Math.round(canvas.width * 0.27), Math.round(canvas.height * 0.75), 1, 1).data;
+      const beside = context.getImageData(Math.round(canvas.width * 0.9), Math.round(canvas.height * 0.75), 1, 1).data;
+      const distance = Math.abs(inside[0]! - beside[0]!) + Math.abs(inside[1]! - beside[1]!) + Math.abs(inside[2]! - beside[2]!);
+      return { inside: [inside[0], inside[1], inside[2]], beside: [beside[0], beside[1], beside[2]], distance };
+    });
+
+    // A correctly re-cut blur of a flat colour band is that same colour.
+    expect(carried.distance, `a moved blur must show its new surroundings, not the pixels it was created over (got ${JSON.stringify(carried)})`).toBeLessThan(60);
+  } finally {
+    await context.close();
+  }
+});
+
+test('dragging an object does not also draw a new shape', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+
+    await drawWith(page, 'rect', [[0.2, 0.2], [0.5, 0.5]]);
+    const afterDraw = await objectCount(page);
+
+    // With the rectangle tool still active, drag the shape that was just drawn.
+    // The press used to start a second rectangle as well as move the first.
+    const surface = await surfaceBox(page);
+    const stage = await page.locator('.editor-stage').boundingBox();
+    if (!stage) throw new Error('The editor stage has no layout box.');
+    const left = Math.max(surface.x, stage.x) + 4;
+    const top = Math.max(surface.y, stage.y) + 4;
+    const width = Math.min(surface.x + surface.width, stage.x + stage.width) - left - 8;
+    const height = Math.min(surface.y + surface.height, stage.y + stage.height) - top - 8;
+    await page.mouse.move(left + 0.35 * width, top + 0.35 * height);
+    await page.mouse.down();
+    await page.mouse.move(left + 0.6 * width, top + 0.6 * height, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+
+    expect(await objectCount(page), 'moving a shape must not also draw a new one').toBe(afterDraw);
+  } finally {
+    await context.close();
+  }
+});
+
+test('the shape is visible while it is being dragged', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page, stage } = await openEditor(context, extensionId, driver, testInfo);
+
+    await page.locator('[data-tool="rect"]').click();
+    const surface = await surfaceBox(page);
+    const left = Math.max(surface.x, stage.x) + 4;
+    const top = Math.max(surface.y, stage.y) + 4;
+    const width = Math.min(surface.x + surface.width, stage.x + stage.width) - left - 8;
+    const height = Math.min(surface.y + surface.height, stage.y + stage.height) - top - 8;
+
+    const before = await page.screenshot({ clip: stage });
+    // Hold the drag open: only freehand used to show anything before release.
+    await page.mouse.move(left + 0.2 * width, top + 0.2 * height);
+    await page.mouse.down();
+    await page.mouse.move(left + 0.7 * width, top + 0.7 * height, { steps: 10 });
+    await page.waitForTimeout(200);
+    const during = await page.screenshot({ clip: stage });
+    await page.mouse.up();
+
+    expect(await stageChangeShare(page, before, during), 'the shape must be visible while the pointer is still down').toBeGreaterThan(0.002);
+  } finally {
+    await context.close();
+  }
+});
+
+test('the colour and thickness controls change what is drawn', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+
+    await page.locator('[data-tool="rect"]').click();
+    await page.locator('[data-color="#0A84FF"]').click();
+    await page.locator('[data-width="14"]').click();
+    await drawWith(page, 'rect', [[0.2, 0.2], [0.7, 0.7]]);
+
+    const painted = await page.locator('.editor-stage canvas.lower-canvas').evaluate((canvas: HTMLCanvasElement) => {
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) throw new Error('Editor canvas has no 2D context.');
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+      let blue = 0;
+      let magenta = 0;
+      for (let offset = 0; offset < data.length; offset += 4) {
+        const [r, g, b] = [data[offset]!, data[offset + 1]!, data[offset + 2]!];
+        if (b > 180 && r < 120 && g > 100 && g < 190) blue += 1;
+        if (r > 200 && g < 90 && b > 100 && b < 200) magenta += 1;
+      }
+      return { blue, magenta };
+    });
+
+    expect(painted.blue, 'the chosen colour must be what gets drawn').toBeGreaterThan(0);
+    expect(painted.magenta, 'the default colour must not be drawn once another is chosen').toBe(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('a selected annotation can be deleted with the keyboard', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+
+    await drawWith(page, 'rect', [[0.2, 0.2], [0.6, 0.6]]);
+    expect(await objectCount(page)).toBe(1);
+
+    // Undo was the only way to remove a shape, and it is strictly last-in
+    // first-out, so removing an early shape meant redrawing everything after it.
+    await selectAt(page, 0.4, 0.4);
+    await page.keyboard.press('Delete');
+    await page.waitForTimeout(250);
+
+    expect(await objectCount(page), 'the selected annotation must be deleted').toBe(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('an abandoned empty text box is not left behind', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+
+    await drawWith(page, 'text', [[0.2, 0.2], [0.6, 0.4]]);
+    // Leaving without typing used to strand an invisible object that still
+    // intercepted clicks and could not be removed.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    expect(await objectCount(page), 'an empty text box must not survive').toBe(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('typed text is written into the document that gets saved', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+
+    await drawWith(page, 'text', [[0.2, 0.2], [0.7, 0.4]]);
+    await page.keyboard.type('Gizli');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    // The model recorded an empty string forever, so a saved document lost
+    // every character while the exported image kept them.
+    const text = await page.locator('[data-testid="editor-doc-text"]').innerText();
+    expect(text, 'the typed text must reach the document').toBe('Gizli');
+  } finally {
+    await context.close();
+  }
+});
+
+test('moving an annotation updates the document rather than only the canvas', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+
+    await drawWith(page, 'rect', [[0.15, 0.15], [0.4, 0.4]]);
+    const before = await page.locator('[data-testid="editor-doc-rect"]').innerText();
+
+    await selectAt(page, 0.27, 0.27);
+    await dragFromTo(page, [0.27, 0.27], [0.7, 0.7]);
+
+    const after = await page.locator('[data-testid="editor-doc-rect"]').innerText();
+    expect(after, 'the document must record where the annotation was left').not.toBe(before);
+  } finally {
+    await context.close();
+  }
+});
+
+test('the capture opens large enough to annotate', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const fixture = await context.newPage();
+    await fixture.setViewportSize({ width: 1280, height: 800 });
+    await fixture.goto(`${fixtureOrigin}/very-long.html`);
+    const page = await sendCapture(context, extensionId, driver, fixture, captureRequest('fullPage'), testInfo);
+    await page.locator('[data-testid="result-viewer"] img').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="result-edit"]').click();
+    await page.locator('[data-testid="editor-toolbar"][data-ready="true"]').waitFor();
+
+    // Fitting a 34,000px capture by height lands around 6%, where the image is
+    // a thumbnail and a stroke is thinner than a pixel.
+    const zoom = Number((await page.locator('[data-testid="editor-zoom-value"]').innerText()).replace('%', ''));
+    expect(zoom, 'a full-page capture must not open as an unusable thumbnail').toBeGreaterThanOrEqual(25);
+  } finally {
+    await context.close();
+  }
+});
+
+/** Share of near-black pixels in an image element, sampled in the page. */
+async function blackShare(page: Page, selector: string): Promise<number> {
+  return page.locator(selector).evaluate((image: HTMLImageElement) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Sampling canvas has no 2D context.');
+    context.drawImage(image, 0, 0);
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    let dark = 0;
+    for (let offset = 0; offset < data.length; offset += 4) {
+      if (data[offset]! < 30 && data[offset + 1]! < 30 && data[offset + 2]! < 30) dark += 1;
+    }
+    return dark / (data.length / 4);
+  });
+}
+
+test('saving keeps the annotations and shows the edited version', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo);
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const { page } = await openEditor(context, extensionId, driver, testInfo);
+    const originalId = new URL(page.url()).searchParams.get('id');
+
+    // Redaction is opaque black, which the fixture's colour bands never are, so
+    // it is unambiguous evidence that the annotation survived the round trip.
+    await drawWith(page, 'redact', [[0.2, 0.2], [0.7, 0.7]]);
+    await page.locator('[data-testid="editor-save"]').click();
+    await page.waitForURL((url) => {
+      const id = url.searchParams.get('id');
+      return id !== null && id !== originalId;
+    }, { timeout: 20_000 });
+    await page.locator('[data-testid="result-viewer"] img').waitFor({ state: 'visible' });
+
+    // Two separate failures used to hide here: the export scaled the canvas
+    // against its own zoom so the annotations fell outside the frame, and the
+    // viewer preferred the untouched capture over the edited file, so a save
+    // that had worked still looked as though it had done nothing.
+    const share = await blackShare(page, '[data-testid="result-viewer"] img');
+    expect(share, 'the saved capture must contain the redaction').toBeGreaterThan(0.05);
+
+    // The export also has to stay at the capture's own resolution: passing a
+    // multiplier alone fought with the canvas resize that zooming performs.
+    const saved = await page.locator('[data-testid="result-viewer"] img').evaluate((image: HTMLImageElement) => ({ width: image.naturalWidth, height: image.naturalHeight }));
+    expect(saved.width, 'the saved capture must keep its width').toBeGreaterThanOrEqual(1600);
   } finally {
     await context.close();
   }

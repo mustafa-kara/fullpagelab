@@ -16,7 +16,18 @@ export async function launchExtension(testInfo: TestInfo, options: { deviceScale
   const context = await chromium.launchPersistentContext(testInfo.outputPath('profile'), {
     headless: false,
     deviceScaleFactor: options.deviceScaleFactor,
-    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+      // Without these the browsers a finished test leaves behind keep running
+      // background work; they accumulate across the suite until the machine is
+      // saturated and an unrelated later test times out.
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--no-first-run',
+      '--no-default-browser-check',
+    ],
   });
   let worker = context.serviceWorkers()[0];
   worker ??= await context.waitForEvent('serviceworker');

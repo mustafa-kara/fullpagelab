@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_MAX_AREA, CANVAS_MAX_SIDE, clampZoom, fitCanvasToLimits, fitZoomToViewport } from '../../src/lib/editor/viewport';
+import { CANVAS_MAX_AREA, CANVAS_MAX_SIDE, MIN_WORKABLE_ZOOM, clampZoom, fitCanvasToLimits, fitZoomToViewport, initialZoomFor } from '../../src/lib/editor/viewport';
 
 describe('editor viewport fitting', () => {
   it('leaves an image that already fits at its natural size', () => {
@@ -89,5 +89,27 @@ describe('clampZoom', () => {
 
   it('treats a non-finite zoom as the minimum rather than propagating NaN', () => {
     expect(clampZoom(Number.NaN)).toBe(0.05);
+  });
+});
+
+describe('initialZoomFor', () => {
+  it('shows the whole capture when that is still workable', () => {
+    expect(initialZoomFor({ width: 800, height: 600 }, { width: 400, height: 300 })).toBeCloseTo(0.5, 5);
+  });
+
+  it('fits the width when fitting the height would make the capture a thumbnail', () => {
+    // A full-page capture is read by scrolling, so fitting its height lands
+    // around 6% — too small to draw on. The width is what has to fit.
+    const zoom = initialZoomFor({ width: 1920, height: 17_000 }, { width: 1100, height: 460 });
+    expect(zoom).toBeCloseTo(1100 / 1920, 5);
+    expect(zoom).toBeGreaterThanOrEqual(MIN_WORKABLE_ZOOM);
+  });
+
+  it('never enlarges a capture smaller than the stage', () => {
+    expect(initialZoomFor({ width: 200, height: 100 }, { width: 1000, height: 900 })).toBe(1);
+  });
+
+  it('never returns less than the workable minimum', () => {
+    expect(initialZoomFor({ width: 40_000, height: 40_000 }, { width: 500, height: 500 })).toBe(MIN_WORKABLE_ZOOM);
   });
 });

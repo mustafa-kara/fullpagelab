@@ -57,6 +57,27 @@ export function fitZoomToViewport(image: Size, viewport: Size, { maxZoom = 1, mi
   return Math.min(maxZoom, Math.max(minZoom, zoom));
 }
 
+/**
+ * Zoom the editor should open a capture at.
+ *
+ * Fitting a full-page capture by height alone lands around 6%, where the image
+ * is a thumbnail and a stroke is thinner than a pixel. A full-page screenshot
+ * is read by scrolling, so the width is what has to fit; the height is allowed
+ * to overflow into the stage's scroll.
+ */
+export function initialZoomFor(image: Size, viewport: Size, { maxZoom = 1, minZoom = MIN_WORKABLE_ZOOM }: FitToViewportOptions = {}): number {
+  if (image.width <= 0 || viewport.width <= 0) return maxZoom;
+  const byWidth = viewport.width / image.width;
+  const fitted = fitZoomToViewport(image, viewport, { maxZoom, minZoom: 0 });
+  // Prefer showing the whole capture, but never below the point where editing
+  // stops being practical; fall back to fitting the width alone.
+  const zoom = fitted >= minZoom ? fitted : byWidth;
+  return Math.min(maxZoom, Math.max(minZoom, zoom));
+}
+
+/** Below this the capture is a thumbnail and annotations are sub-pixel. */
+export const MIN_WORKABLE_ZOOM = 0.25;
+
 /** Clamps a user-chosen zoom to the range the editor's controls allow. */
 export function clampZoom(zoom: number, { minZoom = 0.05, maxZoom = 4 }: FitToViewportOptions = {}): number {
   if (!Number.isFinite(zoom)) return minZoom;
