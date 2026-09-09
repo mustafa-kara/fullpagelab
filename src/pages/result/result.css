@@ -71,12 +71,43 @@
 .result-error button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--result-accent); color: white; cursor: pointer; font-weight: 700; }
 button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid rgb(43 114 232 / 30%); outline-offset: 2px; }
 .editor-panel { border: 1px solid var(--result-line); border-radius: 14px; background: var(--result-surface); overflow: hidden; }
-.editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--result-line); }
-.editor-toolbar-spacer { flex: 1; }
-.editor-tool { min-height: 34px; padding: 0 10px; border: 1px solid var(--result-line); border-radius: 8px; background: white; color: var(--result-muted); cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
-.editor-tool:hover, .editor-tool.active { border-color: var(--result-accent); background: var(--result-accent-soft); color: var(--result-accent); }
-.editor-privacy-note { margin: 0; padding: 8px 14px; border-bottom: 1px solid var(--result-line); background: #fbfcfe; color: var(--result-muted); font-size: 11px; }
-.editor-stage { display: flex; align-items: flex-start; justify-content: safe center; max-height: calc(100vh - 260px); overflow: auto; padding: 20px; background: var(--result-canvas); }
+.editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--result-line); }
+.editor-toolbar-spacer { flex: 1 1 auto; min-width: 0; }
+.editor-commits { display: flex; gap: 6px; margin-left: auto; }
+.editor-group { display: flex; align-items: center; gap: 2px; }
+.editor-divider { flex: none; width: 1px; height: 22px; background: var(--result-line); }
+.editor-tool, .editor-action { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 6px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--result-ink); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; }
+.editor-tool:hover, .editor-action:hover:not(:disabled) { background: var(--result-accent-soft); }
+.editor-tool.active { border-color: var(--result-accent); background: var(--result-accent-soft); color: var(--result-accent); }
+.editor-action { font-size: 14px; color: var(--result-muted); }
+.editor-action-text { min-width: auto; font-size: 11px; font-weight: 700; }
+.editor-action:disabled { cursor: not-allowed; opacity: 0.4; }
+/* The export panel's buttons are full-width by design; in the toolbar they sit
+   beside each other, so the width has to be reset or Save wraps to its own row. */
+.editor-commit { width: auto; min-height: 30px; padding: 0 12px; font-size: 12px; }
+.editor-zoom-value { min-width: 40px; color: var(--result-muted); font-size: 11px; font-weight: 700; text-align: center; }
+.editor-swatches, .editor-widths { display: flex; align-items: center; gap: 3px; }
+.editor-swatch { width: 18px; height: 18px; padding: 0; border: 2px solid transparent; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(20 34 56 / 20%); cursor: pointer; }
+.editor-swatch.active { border-color: var(--result-accent); }
+.editor-swatch:disabled, .editor-width:disabled { cursor: not-allowed; opacity: 0.35; }
+.editor-width { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; cursor: pointer; }
+.editor-width:hover:not(:disabled) { background: var(--result-accent-soft); }
+.editor-width.active { border-color: var(--result-accent); background: var(--result-accent-soft); }
+.editor-width span { display: block; width: 14px; border-radius: 999px; background: currentcolor; }
+.editor-privacy-note { margin: 0; padding: 6px 12px; border-bottom: 1px solid var(--result-line); background: #fbfcfe; color: var(--result-muted); font-size: 11px; }
+.editor-privacy-note.warn { background: #fff8e6; color: #8a6100; font-weight: 600; }
+/* A narrow window cannot hold every control on one row. Shed the least
+   essential first — the fixed zoom presets, then the wider swatches — so the
+   toolbar stays two rows instead of returning to three. */
+/* The editor needs the full width for its toolbar, so it drops the export
+   panel below sooner than the plain viewer does — at the viewer's own 900px
+   breakpoint the toolbar is squeezed into a 632px column and wraps to three
+   rows. */
+@media (max-width: 1250px) { .result-layout:has(.editor-panel) { grid-template-columns: 1fr; } .result-layout:has(.editor-panel) .export-panel { order: 2; } }
+@media (max-width: 1400px) { .editor-toolbar { gap: 6px; } .editor-divider { display: none; } }
+@media (max-width: 1200px) { .editor-zoom [data-testid="editor-zoom-fit"], .editor-zoom [data-testid="editor-zoom-actual"] { display: none; } }
+@media (max-width: 1050px) { .editor-swatch { width: 16px; height: 16px; } .editor-width { width: 22px; } }
+.editor-stage { display: flex; align-items: flex-start; justify-content: safe center; max-height: calc(100vh - 210px); overflow: auto; padding: 20px; background: var(--result-canvas); }
 /* Fabric stacks an interaction layer on top of the drawing layer. Styling
    every canvas painted the top one opaque white, which hid the capture
    completely, so the frame belongs on the wrapper Fabric creates. */

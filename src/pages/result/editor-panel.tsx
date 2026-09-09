@@ -8,8 +8,39 @@ import type { EditorDocument, ToolId } from '../../shared/types/editor';
 
 const tools: ToolId[] = ['select', 'arrow', 'rect', 'ellipse', 'line', 'freehand', 'text', 'highlight', 'blur', 'pixelate', 'redact'];
 
-/** Palette covering the colours that stay legible over typical page content. */
-const colors = ['#FF1493', '#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#0A84FF', '#5856D6', '#111111', '#FFFFFF'];
+/**
+ * Glyphs for the tool buttons.
+ *
+ * Names spelled out took three rows of the panel and pushed the capture itself
+ * below the fold; a labelled icon fits on one row and stays legible. The
+ * accessible name still comes from the translated string.
+ */
+const toolGlyphs: Record<ToolId, string> = {
+  select: '↖',
+  arrow: '↗',
+  rect: '▭',
+  ellipse: '◯',
+  line: '╱',
+  freehand: '✎',
+  text: 'T',
+  highlight: '▤',
+  blur: '◌',
+  pixelate: '▓',
+  redact: '■',
+  marker: '①',
+  emoji: '☺',
+  image: '❑',
+  crop: '⌗',
+  pan: '✚',
+};
+
+/**
+ * Palette covering the colours that stay legible over typical page content.
+ *
+ * Kept short on purpose: the whole toolbar has to fit one row, and every extra
+ * swatch pushes Save onto a second one.
+ */
+const colors = ['#FF1493', '#FF3B30', '#FFCC00', '#34C759', '#0A84FF', '#111111'];
 
 const strokeWidths = [2, 4, 8, 14];
 
@@ -113,55 +144,89 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
   // own pixels, so a colour or width would have nothing to act on.
   const styleDisabled = unstyledTools.has(tool);
 
+  const warns = tool === 'blur' || tool === 'pixelate' || tool === 'redact';
+
   const privacyNote = tool === 'blur' || tool === 'pixelate' ? t('ui.editor.blurWarning') : tool === 'redact' ? t('ui.editor.redactWarning') : t('ui.editor.keepOriginal');
 
   return <section class="editor-panel" aria-label={t('ui.editor.title')}>
     <div class="editor-toolbar" data-testid="editor-toolbar" data-ready={ready ? 'true' : 'false'} role="toolbar" aria-label={t('ui.editor.title')} aria-busy={!ready}>
-      {tools.map((item) => <button key={item} type="button" data-tool={item} class={tool === item ? 'editor-tool active' : 'editor-tool'} aria-pressed={tool === item} onClick={() => chooseTool(item)}>{t(`ui.editor.tool.${item}`)}</button>)}
-      <span class="editor-toolbar-spacer" />
-      <div class="editor-zoom" role="group" aria-label={t('ui.editor.zoom')}>
-        <button type="button" class="icon-button" data-testid="editor-zoom-out" aria-label={t('ui.editor.zoomOut')} disabled={!ready} onClick={() => changeZoom(zoom / 1.25)}>−</button>
+      <div class="editor-group" role="radiogroup" aria-label={t('ui.editor.title')}>
+        {tools.map((item) => <button
+          key={item}
+          type="button"
+          data-tool={item}
+          class={tool === item ? 'editor-tool active' : 'editor-tool'}
+          role="radio"
+          aria-checked={tool === item}
+          aria-label={t(`ui.editor.tool.${item}`)}
+          title={t(`ui.editor.tool.${item}`)}
+          onClick={() => chooseTool(item)}
+        ><span aria-hidden="true">{toolGlyphs[item]}</span></button>)}
+      </div>
+
+      <div class="editor-divider" />
+
+      <div class="editor-group" data-testid="editor-style">
+        <div class="editor-swatches" role="radiogroup" aria-label={t('ui.editor.color')}>
+          {colors.map((item) => <button
+            key={item}
+            type="button"
+            class={style.color === item ? 'editor-swatch active' : 'editor-swatch'}
+            data-color={item}
+            role="radio"
+            aria-checked={style.color === item}
+            aria-label={item}
+            title={item}
+            style={{ background: item }}
+            disabled={!ready || styleDisabled}
+            onClick={() => changeStyle({ color: item })}
+          />)}
+        </div>
+        <div class="editor-widths" role="radiogroup" aria-label={t('ui.editor.strokeWidth')}>
+          {strokeWidths.map((item) => <button
+            key={item}
+            type="button"
+            class={style.strokeWidth === item ? 'editor-width active' : 'editor-width'}
+            data-width={item}
+            role="radio"
+            aria-checked={style.strokeWidth === item}
+            aria-label={`${item}`}
+            title={`${item}`}
+            disabled={!ready || styleDisabled}
+            onClick={() => changeStyle({ strokeWidth: item })}
+          ><span style={{ height: `${Math.min(item, 10)}px`, background: styleDisabled ? 'var(--result-muted)' : style.color }} /></button>)}
+        </div>
+      </div>
+
+      <div class="editor-divider" />
+
+      <div class="editor-group">
+        <button type="button" class="editor-action" aria-label={t('ui.editor.undo')} title={t('ui.editor.undo')} onClick={() => handleRef.current?.undo()}><span aria-hidden="true">{'↶'}</span></button>
+        <button type="button" class="editor-action" aria-label={t('ui.editor.redo')} title={t('ui.editor.redo')} onClick={() => handleRef.current?.redo()}><span aria-hidden="true">{'↷'}</span></button>
+      </div>
+
+      <div class="editor-divider" />
+
+      <div class="editor-group editor-zoom" role="group" aria-label={t('ui.editor.zoom')}>
+        <button type="button" class="editor-action" data-testid="editor-zoom-out" aria-label={t('ui.editor.zoomOut')} title={t('ui.editor.zoomOut')} disabled={!ready} onClick={() => changeZoom(zoom / 1.25)}><span aria-hidden="true">{'−'}</span></button>
         <span class="editor-zoom-value" data-testid="editor-zoom-value">{Math.round(zoom * 100)}%</span>
-        <button type="button" class="icon-button" data-testid="editor-zoom-in" aria-label={t('ui.editor.zoomIn')} disabled={!ready} onClick={() => changeZoom(zoom * 1.25)}>+</button>
-        <button type="button" class="button button-quiet" data-testid="editor-zoom-fit" disabled={!ready} onClick={() => changeZoom(handleRef.current?.fitZoom() ?? 1)}>{t('ui.editor.zoomFit')}</button>
-        <button type="button" class="button button-quiet" data-testid="editor-zoom-actual" disabled={!ready} onClick={() => changeZoom(1)}>{t('ui.editor.zoomActual')}</button>
+        <button type="button" class="editor-action" data-testid="editor-zoom-in" aria-label={t('ui.editor.zoomIn')} title={t('ui.editor.zoomIn')} disabled={!ready} onClick={() => changeZoom(zoom * 1.25)}><span aria-hidden="true">+</span></button>
+        <button type="button" class="editor-action" data-testid="editor-zoom-fit" aria-label={t('ui.editor.zoomFit')} title={t('ui.editor.zoomFit')} disabled={!ready} onClick={() => changeZoom(handleRef.current?.fitZoom() ?? 1)}><span aria-hidden="true">{'⛶'}</span></button>
+        <button type="button" class="editor-action editor-action-text" data-testid="editor-zoom-actual" aria-label={t('ui.editor.zoomActual')} title={t('ui.editor.zoomActual')} disabled={!ready} onClick={() => changeZoom(1)}>1:1</button>
       </div>
-      <button type="button" class="button button-quiet" onClick={() => handleRef.current?.undo()}>{t('ui.editor.undo')}</button>
-      <button type="button" class="button button-quiet" onClick={() => handleRef.current?.redo()}>{t('ui.editor.redo')}</button>
-      <button type="button" class="button button-quiet" data-testid="editor-cancel" onClick={() => onClose()}>{t('ui.editor.cancel')}</button>
-      <button type="button" class="button button-primary" data-testid="editor-save" disabled={busy || !ready} onClick={() => void save()}>{busy ? t('ui.editor.saving') : t('ui.editor.save')}</button>
+
+      <span class="editor-toolbar-spacer" />
+
+      {/* Grouped so a narrow window wraps them together rather than stranding
+          Save on a line of its own. */}
+      <div class="editor-commits">
+        <button type="button" class="button button-quiet editor-commit" data-testid="editor-cancel" onClick={() => onClose()}>{t('ui.editor.cancel')}</button>
+        <button type="button" class="button button-primary editor-commit" data-testid="editor-save" disabled={busy || !ready} onClick={() => void save()}>{busy ? t('ui.editor.saving') : t('ui.editor.save')}</button>
+      </div>
     </div>
-    <div class="editor-style" data-testid="editor-style">
-      <div class="editor-swatches" role="radiogroup" aria-label={t('ui.editor.color')}>
-        {colors.map((item) => <button
-          key={item}
-          type="button"
-          class={style.color === item ? 'editor-swatch active' : 'editor-swatch'}
-          data-color={item}
-          role="radio"
-          aria-checked={style.color === item}
-          aria-label={item}
-          style={{ background: item }}
-          disabled={!ready || styleDisabled}
-          onClick={() => changeStyle({ color: item })}
-        />)}
-      </div>
-      <div class="editor-widths" role="radiogroup" aria-label={t('ui.editor.strokeWidth')}>
-        {strokeWidths.map((item) => <button
-          key={item}
-          type="button"
-          class={style.strokeWidth === item ? 'editor-width active' : 'editor-width'}
-          data-width={item}
-          role="radio"
-          aria-checked={style.strokeWidth === item}
-          aria-label={`${item}`}
-          disabled={!ready || styleDisabled}
-          onClick={() => changeStyle({ strokeWidth: item })}
-        ><span style={{ height: `${Math.min(item, 12)}px`, background: style.color }} /></button>)}
-      </div>
-      {styleDisabled && <span class="editor-style-hint">{t('ui.editor.styleUnavailable')}</span>}
-    </div>
-    <p class="editor-privacy-note" data-testid="editor-privacy-note">{privacyNote}</p>
+    {/* The reassurance that originals are kept does not need a permanent row;
+        the blur and redaction warnings do. */}
+    <p class={warns ? 'editor-privacy-note warn' : 'editor-privacy-note'} data-testid="editor-privacy-note">{privacyNote}</p>
     {/* The document state the editor is about to save, so tests can assert on
         what will be persisted rather than only on what is painted. */}
     <span hidden data-testid="editor-object-count">{docState.layers.length}</span>

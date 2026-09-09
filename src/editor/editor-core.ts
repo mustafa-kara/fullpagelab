@@ -366,7 +366,7 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     const object = fabricFor(annotation);
     stack.push({
       label: `Add ${annotation.type}`,
-      do: () => { canvas.add(object); doc = addLayer(doc, annotation); canvas.requestRenderAll(); emit(); },
+      do: () => { canvas.add(object); doc = addLayer(doc, annotation); setObjectsInteractive(tool === 'select'); canvas.requestRenderAll(); emit(); },
       undo: () => { canvas.remove(object); doc = removeLayer(doc, annotation.id); canvas.requestRenderAll(); emit(); },
     });
     return object;
@@ -376,10 +376,6 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     // Freehand is drawn by Fabric's brush, so the drag-rectangle path must not
     // also run for it or every stroke would leave a rectangle behind.
     if (tool === 'select' || tool === 'pan' || tool === 'freehand') return;
-    // Pressing on an existing annotation means the user is moving or resizing
-    // it. Starting a new shape as well would draw a stray rectangle over the
-    // one being dragged, so the drawing gesture yields to the manipulation.
-    if (event.target) { origin = null; clearPreview(); return; }
     const pointer = canvas.getScenePoint(event.e);
     origin = { x: pointer.x, y: pointer.y };
   });
@@ -399,19 +395,36 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     const pointerEvent = event.e as MouseEvent;
     const rect = constrainRect(normalizeRect(origin, { x: pointer.x, y: pointer.y }), { lockAspect: pointerEvent.shiftKey, fromCenter: pointerEvent.altKey });
     if (preview) canvas.remove(preview);
-    // A preview of the pixel effects would re-cut the region on every pointer
-    // move, so those show an outline until release.
-    const previewType: AnnotationType = tool === 'blur' || tool === 'pixelate' || tool === 'redact' ? 'rect' : tool as AnnotationType;
-    const draft = createAnnotation(previewType, rect, {
+    const draft = createAnnotation(tool as AnnotationType, rect, {
       from: origin,
       to: { x: pointer.x, y: pointer.y },
-      style: { ...styleOverrideFor(previewType), fill: 'none' },
+      style: styleOverrideFor(tool as AnnotationType),
     });
-    preview = fabricFor(draft);
+    // Re-cutting a blur or pixelate region on every pointer move is too costly,
+    // so those preview as a translucent wash of the colour they will occupy
+    // rather than as a hollow outline, which showed nothing of the result.
+    preview = draft.type === 'blur' || draft.type === 'pixelate'
+      ? new FabricRect({ left: rect.x, top: rect.y, width: rect.width, height: rect.height, fill: '#1b2a41', opacity: 0.45, stroke: '#ffffff', strokeWidth: 1, strokeDashArray: [6, 4] })
+      : fabricFor(draft);
     preview.set({ selectable: false, evented: false, excludeFromExport: true } as Partial<FabricObject>);
     canvas.add(preview);
     canvas.requestRenderAll();
   });
+
+  /**
+   * Turns pointer interaction on the annotations on or off.
+   *
+   * Locked layers stay inert either way — the model, not the tool, decides that.
+   */
+  function setObjectsInteractive(interactive: boolean): void {
+    for (const object of canvas.getObjects()) {
+      if (object === preview) continue;
+      const layer = layerFor(object);
+      const allowed = interactive && !(layer?.locked ?? false);
+      object.selectable = allowed;
+      object.evented = allowed;
+    }
+  }
 
   function clearPreview(): void {
     if (!preview) return;
@@ -430,7 +443,7 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     canvas.remove(path);
     stack.push({
       label: 'Add freehand',
-      do: () => { canvas.add(path); doc = addLayer(doc, annotation); canvas.requestRenderAll(); emit(); },
+      do: () => { canvas.add(path); doc = addLayer(doc, annotation); setObjectsInteractive(tool === 'select'); canvas.requestRenderAll(); emit(); },
       undo: () => { canvas.remove(path); doc = removeLayer(doc, annotation.id); canvas.requestRenderAll(); emit(); },
     });
   });
@@ -440,10 +453,6 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     origin = null;
     clearPreview();
     if (!started || tool === 'select' || tool === 'pan' || tool === 'freehand') return;
-    // Fabric can take a gesture over after the press — grabbing a resize handle
-    // that sits outside the object's box, for instance — which would otherwise
-    // leave a live origin for this handler to turn into a stray shape.
-    if (event.target || canvas.getActiveObject()) return;
     const pointer = canvas.getScenePoint(event.e);
     const pointerEvent = event.e as MouseEvent;
     const rect = constrainRect(normalizeRect(started, { x: pointer.x, y: pointer.y }), { lockAspect: pointerEvent.shiftKey, fromCenter: pointerEvent.altKey });
@@ -462,6 +471,10 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
     const object = commitAnnotation(annotation);
     if (annotation.type === 'text' && object instanceof IText) {
       // Without this the caret never appears and the box cannot be typed into.
+      // The text tool leaves objects inert, so this one is re-enabled for the
+      // duration of the edit.
+      object.selectable = true;
+      object.evented = true;
       canvas.setActiveObject(object);
       object.enterEditing();
       object.selectAll();
@@ -479,6 +492,16 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
         brush.color = style.color;
         brush.width = style.strokeWidth;
         canvas.freeDrawingBrush = brush;
+      }
+      // With a drawing tool active the annotations already on the canvas stop
+      // responding to the pointer, so a new shape can be drawn on top of one
+      // instead of dragging it. Suppressing the draw whenever the press landed
+      // on an object was the other way round, and it made the area covered by
+      // earlier annotations undrawable. Moving is what the select tool is for.
+      setObjectsInteractive(next === 'select');
+      if (next !== 'select') {
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
       }
     },
     undo() { stack.undo(); },
