@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAnnotation, defaultStyleFor } from '../../src/lib/editor/annotation';
+import { ANNOTATION_STROKE, createAnnotation, defaultStyleFor } from '../../src/lib/editor/annotation';
 
 const rect = { x: 10, y: 20, width: 100, height: 50 };
 
@@ -10,11 +10,11 @@ describe('annotation factory', () => {
   });
 
   it('uses the red stroke and width 3 for rectangles', () => {
-    expect(defaultStyleFor('rect')).toMatchObject({ stroke: '#FF3B30', strokeWidth: 3, fill: 'none' });
+    expect(defaultStyleFor('rect')).toMatchObject({ stroke: ANNOTATION_STROKE, strokeWidth: 3, fill: 'none' });
   });
 
   it('uses a thicker stroke and an end arrow head for arrows', () => {
-    expect(defaultStyleFor('arrow')).toMatchObject({ stroke: '#FF3B30', strokeWidth: 4, arrowHead: 'end' });
+    expect(defaultStyleFor('arrow')).toMatchObject({ stroke: ANNOTATION_STROKE, strokeWidth: 4, arrowHead: 'end' });
   });
 
   it('makes highlights a translucent yellow fill', () => {

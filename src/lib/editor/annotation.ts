@@ -2,7 +2,16 @@ import { createId, nowIso } from '../../shared/ids';
 import type { Annotation, AnnotationStyle, AnnotationType } from '../../shared/types/editor';
 import type { Point, Rect } from '../../shared/types/primitives';
 
-const shapeStroke = '#FF3B30';
+/**
+ * Default colour for annotation strokes.
+ *
+ * Annotations have to stay legible over arbitrary page content, and red
+ * disappears against the red UI that is common on the web. Strong magenta
+ * almost never occurs in page chrome or photography.
+ */
+export const ANNOTATION_STROKE = '#FF1493';
+
+const shapeStroke = ANNOTATION_STROKE;
 
 const styles: Record<AnnotationType, AnnotationStyle> = {
   arrow: { stroke: shapeStroke, strokeWidth: 4, fill: 'none', lineCap: 'round', arrowHead: 'end', arrowHeadSize: 12 },

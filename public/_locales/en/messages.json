@@ -1,145 +1,446 @@
 {
-  "appName": { "message": "FullPageLab" },
-  "appDesc": { "message": "Capture, document and track the web." },
-  "cmdVisible": { "message": "Capture visible area" },
-  "contextMenuCaptureFullPage": { "message": "Capture full-page screenshot" },
-  "privacy_tagline": { "message": "Screenshots never leave your browser unless you choose to upload them." },
-  "privacy": { "message": "Screenshots never leave your browser unless you choose to upload them." },
-  "error_E_PROTOCOL_body": { "message": "The message version is unsupported." },
-  "error_E_UNKNOWN_body": { "message": "Something went wrong. Try again." },
-  "common_retry": { "message": "Try again" },
-  "common_working": { "message": "Working…" },
-  "ui_result_back": { "message": "Back to history" },
-  "ui_result_errorTitle": { "message": "This result could not be opened" },
-  "ui_result_metadata": { "message": "Capture metadata" },
-  "ui_result_warning": { "message": "Warning" },
-  "ui_result_preview": { "message": "Screenshot preview" },
-  "ui_result_edit": { "message": "Edit" },
-  "ui_result_recapture": { "message": "Recapture" },
-  "ui_result_print": { "message": "Print" },
-  "ui_result_editorUnavailable": { "message": "The editor will be available from this result." },
-  "ui_result_recaptureUnavailable": { "message": "Recapture will reuse these settings." },
-  "ui_editor_title": { "message": "Edit" },
-  "ui_editor_done": { "message": "Done" },
-  "ui_editor_cancel": { "message": "Cancel" },
-  "ui_editor_save": { "message": "Save" },
-  "ui_editor_saved": { "message": "Your edit was saved." },
-  "ui_editor_saving": { "message": "Saving…" },
-  "ui_editor_undo": { "message": "Undo" },
-  "ui_editor_redo": { "message": "Redo" },
-  "ui_editor_tool_select": { "message": "Select" },
-  "ui_editor_tool_arrow": { "message": "Arrow" },
-  "ui_editor_tool_rect": { "message": "Rectangle" },
-  "ui_editor_tool_ellipse": { "message": "Ellipse" },
-  "ui_editor_tool_line": { "message": "Line" },
-  "ui_editor_tool_freehand": { "message": "Draw" },
-  "ui_editor_tool_text": { "message": "Text" },
-  "ui_editor_tool_highlight": { "message": "Highlight" },
-  "ui_editor_tool_blur": { "message": "Blur" },
-  "ui_editor_tool_pixelate": { "message": "Pixelate" },
-  "ui_editor_tool_redact": { "message": "Redact" },
-  "ui_editor_blurWarning": { "message": "Blur and pixelate can be reversed. Use Redact for sensitive data." },
-  "ui_editor_redactWarning": { "message": "Redaction permanently removes the original pixels from this copy." },
-  "ui_editor_keepOriginal": { "message": "The original capture is kept unchanged." },
-  "ui_result_export_eyebrow": { "message": "Save a copy" },
-  "ui_result_export_title": { "message": "Export" },
-  "ui_result_export_format": { "message": "File format" },
-  "ui_result_export_filename": { "message": "File name" },
-  "ui_result_export_quality": { "message": "Quality" },
-  "ui_result_export_pdfOptions": { "message": "PDF options" },
-  "ui_result_export_pdfMode": { "message": "PDF layout" },
-  "ui_result_export_singleLongPage": { "message": "Single long page" },
-  "ui_result_export_paged": { "message": "Multiple pages" },
-  "ui_result_export_pageSize": { "message": "Page size" },
-  "ui_result_export_auto": { "message": "Automatic" },
-  "ui_result_export_smartBreaks": { "message": "Smart page breaks" },
-  "ui_result_export_preview": { "message": "Filename preview" },
-  "ui_result_export_download": { "message": "Download" },
-  "ui_result_export_copy": { "message": "Copy to clipboard" },
-  "ui_result_export_downloaded": { "message": "Your file is ready to download." },
-  "ui_result_export_copiedPng": { "message": "Copied as PNG." },
-  "ui_result_viewer_fit": { "message": "Fit to width" },
-  "ui_result_viewer_zoomOut": { "message": "Zoom out" },
-  "ui_result_viewer_zoomIn": { "message": "Zoom in" },
-  "ui_result_viewer_previous": { "message": "Previous image" },
-  "ui_result_viewer_next": { "message": "Next image" },
-  "ui_capture_mode_fullPage": { "message": "Full page" },
-  "ui_capture_mode_visible": { "message": "Visible area" },
-  "ui_capture_mode_selection": { "message": "Selection" },
-  "ui_capture_mode_element": { "message": "Element" },
-  "ui_capture_mode_scrollContainer": { "message": "Scrolling area" },
-  "ui_capture_mode_selector": { "message": "Selector" },
-  "ui_capture_mode_allTabs": { "message": "All tabs" },
-  "error_E_EXPORT_body": { "message": "The export could not be completed. Try another format." },
-  "error_E_CLIPBOARD_body": { "message": "Clipboard access is unavailable. Check the browser permission and try again." },
-  "onboarding_skip": { "message": "Skip tour" },
-  "onboarding_progress": { "message": "Onboarding progress" },
-  "onboarding_progressLabel": { "message": "Step" },
-  "onboarding_continue": { "message": "Continue" },
-  "onboarding_back": { "message": "Back" },
-  "onboarding_footer": { "message": "No account. No cloud. Your browser, your work." },
-  "onboarding_rail_eyebrow": { "message": "WELCOME TO FULLPAGELAB" },
-  "onboarding_rail_title": { "message": "Keep the page intact." },
-  "onboarding_rail_body": { "message": "Capture long pages as one image, review the result locally and keep the history close." },
-  "onboarding_rail_trustTitle": { "message": "Local-first by design" },
-  "onboarding_rail_trustBody": { "message": "Your captures stay in this browser until you choose otherwise." },
-  "onboarding_step_welcome": { "message": "Start here" },
-  "onboarding_step_welcomeMeta": { "message": "How capture works" },
-  "onboarding_step_privacy": { "message": "Privacy" },
-  "onboarding_step_privacyMeta": { "message": "Clear, local and in your control" },
-  "onboarding_step_try": { "message": "Try it" },
-  "onboarding_step_tryMeta": { "message": "Try it on a real webpage" },
-  "onboarding_preview_label": { "message": "FullPageLab capture flow" },
-  "onboarding_preview_mode": { "message": "Full-page mode" },
-  "onboarding_preview_ready": { "message": "Ready to capture" },
-  "onboarding_preview_badge": { "message": "Scroll. Stitch. Done." },
-  "onboarding_preview_local": { "message": "Stays local" },
-  "onboarding_welcome_eyebrow": { "message": "A short introduction" },
-  "onboarding_welcome_title": { "message": "One clean image for a long page." },
-  "onboarding_welcome_body": { "message": "FullPageLab captures the page without splitting it and manages cookie layers and fixed UI by the rules you choose." },
-  "onboarding_feature_fullPage_title": { "message": "Choose the page" },
-  "onboarding_feature_fullPage_body": { "message": "Capture the active webpage from top to bottom." },
-  "onboarding_feature_smart_title": { "message": "Prepare the page" },
-  "onboarding_feature_smart_body": { "message": "Handle fixed UI and cookie layers without dirtying the result." },
-  "onboarding_feature_private_title": { "message": "Review the result" },
-  "onboarding_feature_private_body": { "message": "Inspect it locally and decide what leaves your browser." },
-  "onboarding_privacy_eyebrow": { "message": "Private by default" },
-  "onboarding_privacy_title": { "message": "Your screenshots stay in your browser." },
-  "onboarding_privacy_heroTitle": { "message": "Local-first capture" },
-  "onboarding_privacy_heroBody": { "message": "No account, no upload, no hidden sync." },
-  "onboarding_privacy_localTitle": { "message": "Local processing" },
-  "onboarding_privacy_localBody": { "message": "Images are prepared inside this extension." },
-  "onboarding_privacy_permissionTitle": { "message": "Only when you ask" },
-  "onboarding_privacy_permissionBody": { "message": "Optional exports and integrations are user-triggered." },
-  "onboarding_privacy_storageTitle": { "message": "Protect your local history" },
-  "onboarding_privacy_storageBody": { "message": "Let Chrome keep local data available between sessions." },
-  "onboarding_privacy_storageAction": { "message": "Enable storage" },
-  "onboarding_privacy_storageBusy": { "message": "Checking…" },
-  "onboarding_privacy_storageEnabled": { "message": "Enabled" },
-  "onboarding_privacy_storageGranted": { "message": "Persistent storage is enabled." },
-  "onboarding_privacy_storageDeclined": { "message": "You can enable this later from Options." },
-  "onboarding_privacy_telemetryTitle": { "message": "Help improve FullPageLab" },
-  "onboarding_privacy_telemetryBody": { "message": "Share anonymous diagnostics. Off by default, and never includes screenshots." },
-  "onboarding_try_eyebrow": { "message": "Try it on a webpage" },
-  "onboarding_try_title": { "message": "Make your first capture on a real page." },
-  "onboarding_try_body": { "message": "This setup screen is an extension page, so it cannot be prepared for full-page capture. Open a sample webpage, then use the FullPageLab icon there." },
-  "onboarding_try_previewLabel": { "message": "FullPageLab onboarding" },
-  "onboarding_try_cardEyebrow": { "message": "Try it now" },
-  "onboarding_try_cardTitle": { "message": "A complete page, in one frame." },
-  "onboarding_try_cardBody": { "message": "No manual scrolling. No pasted-together pieces." },
-  "onboarding_try_capture": { "message": "Open sample webpage" },
-  "onboarding_try_openDemo": { "message": "Open sample webpage" },
-  "onboarding_try_boundaryTitle": { "message": "The setup tab cannot be captured" },
-  "onboarding_try_boundaryBody": { "message": "Chrome does not allow content scripts on extension pages, so FullPageLab will not create a misleading result here." },
-  "onboarding_try_boundaryNote": { "message": "Click the FullPageLab icon on the webpage that opens in the new tab." },
-  "onboarding_try_startedTitle": { "message": "The sample page is open." },
-  "onboarding_try_startedBody": { "message": "Switch to the new tab and click the FullPageLab icon. Choose Full page to make your first real capture." },
-  "onboarding_complete_eyebrow": { "message": "You're all set" },
-  "onboarding_complete_title": { "message": "Welcome to your capture lab." },
-  "onboarding_complete_body": { "message": "Pin FullPageLab to your toolbar and capture the next page when inspiration strikes." },
-  "onboarding_complete_pillCapture": { "message": "Capture anywhere" },
-  "onboarding_complete_pillPrivate": { "message": "Private by default" },
-  "onboarding_complete_pillHistory": { "message": "Local history" },
-  "onboarding_pin_title": { "message": "Pin FullPageLab" },
-  "onboarding_pin_body": { "message": "Open the puzzle menu in Chrome and pin FullPageLab for one-click access." }
+  "appName": {
+    "message": "FullPageLab"
+  },
+  "appDesc": {
+    "message": "Capture, document and track the web."
+  },
+  "cmdVisible": {
+    "message": "Capture visible area"
+  },
+  "contextMenuCaptureFullPage": {
+    "message": "Capture full-page screenshot"
+  },
+  "privacy_tagline": {
+    "message": "Screenshots never leave your browser unless you choose to upload them."
+  },
+  "privacy": {
+    "message": "Screenshots never leave your browser unless you choose to upload them."
+  },
+  "error_E_PROTOCOL_body": {
+    "message": "The message version is unsupported."
+  },
+  "error_E_UNKNOWN_body": {
+    "message": "Something went wrong. Try again."
+  },
+  "common_retry": {
+    "message": "Try again"
+  },
+  "common_working": {
+    "message": "Working…"
+  },
+  "ui_result_back": {
+    "message": "Back to history"
+  },
+  "ui_result_errorTitle": {
+    "message": "This result could not be opened"
+  },
+  "ui_result_metadata": {
+    "message": "Capture metadata"
+  },
+  "ui_result_warning": {
+    "message": "Warning"
+  },
+  "ui_result_preview": {
+    "message": "Screenshot preview"
+  },
+  "ui_result_edit": {
+    "message": "Edit"
+  },
+  "ui_result_recapture": {
+    "message": "Recapture"
+  },
+  "ui_result_print": {
+    "message": "Print"
+  },
+  "ui_result_editorUnavailable": {
+    "message": "The editor will be available from this result."
+  },
+  "ui_result_recaptureUnavailable": {
+    "message": "Recapture will reuse these settings."
+  },
+  "ui_editor_title": {
+    "message": "Edit"
+  },
+  "ui_editor_done": {
+    "message": "Done"
+  },
+  "ui_editor_cancel": {
+    "message": "Cancel"
+  },
+  "ui_editor_save": {
+    "message": "Save"
+  },
+  "ui_editor_saved": {
+    "message": "Your edit was saved."
+  },
+  "ui_editor_saving": {
+    "message": "Saving…"
+  },
+  "ui_editor_undo": {
+    "message": "Undo"
+  },
+  "ui_editor_redo": {
+    "message": "Redo"
+  },
+  "ui_editor_tool_select": {
+    "message": "Select"
+  },
+  "ui_editor_tool_arrow": {
+    "message": "Arrow"
+  },
+  "ui_editor_tool_rect": {
+    "message": "Rectangle"
+  },
+  "ui_editor_tool_ellipse": {
+    "message": "Ellipse"
+  },
+  "ui_editor_tool_line": {
+    "message": "Line"
+  },
+  "ui_editor_tool_freehand": {
+    "message": "Draw"
+  },
+  "ui_editor_tool_text": {
+    "message": "Text"
+  },
+  "ui_editor_tool_highlight": {
+    "message": "Highlight"
+  },
+  "ui_editor_tool_blur": {
+    "message": "Blur"
+  },
+  "ui_editor_tool_pixelate": {
+    "message": "Pixelate"
+  },
+  "ui_editor_tool_redact": {
+    "message": "Redact"
+  },
+  "ui_editor_blurWarning": {
+    "message": "Blur and pixelate can be reversed. Use Redact for sensitive data."
+  },
+  "ui_editor_redactWarning": {
+    "message": "Redaction permanently removes the original pixels from this copy."
+  },
+  "ui_editor_keepOriginal": {
+    "message": "The original capture is kept unchanged."
+  },
+  "ui_result_export_eyebrow": {
+    "message": "Save a copy"
+  },
+  "ui_result_export_title": {
+    "message": "Export"
+  },
+  "ui_result_export_format": {
+    "message": "File format"
+  },
+  "ui_result_export_filename": {
+    "message": "File name"
+  },
+  "ui_result_export_quality": {
+    "message": "Quality"
+  },
+  "ui_result_export_pdfOptions": {
+    "message": "PDF options"
+  },
+  "ui_result_export_pdfMode": {
+    "message": "PDF layout"
+  },
+  "ui_result_export_singleLongPage": {
+    "message": "Single long page"
+  },
+  "ui_result_export_paged": {
+    "message": "Multiple pages"
+  },
+  "ui_result_export_pageSize": {
+    "message": "Page size"
+  },
+  "ui_result_export_auto": {
+    "message": "Automatic"
+  },
+  "ui_result_export_smartBreaks": {
+    "message": "Smart page breaks"
+  },
+  "ui_result_export_preview": {
+    "message": "Filename preview"
+  },
+  "ui_result_export_download": {
+    "message": "Download"
+  },
+  "ui_result_export_copy": {
+    "message": "Copy to clipboard"
+  },
+  "ui_result_export_downloaded": {
+    "message": "Your file is ready to download."
+  },
+  "ui_result_export_copiedPng": {
+    "message": "Copied as PNG."
+  },
+  "ui_result_viewer_fit": {
+    "message": "Fit to width"
+  },
+  "ui_result_viewer_zoomOut": {
+    "message": "Zoom out"
+  },
+  "ui_result_viewer_zoomIn": {
+    "message": "Zoom in"
+  },
+  "ui_result_viewer_previous": {
+    "message": "Previous image"
+  },
+  "ui_result_viewer_next": {
+    "message": "Next image"
+  },
+  "ui_capture_mode_fullPage": {
+    "message": "Full page"
+  },
+  "ui_capture_mode_visible": {
+    "message": "Visible area"
+  },
+  "ui_capture_mode_selection": {
+    "message": "Selection"
+  },
+  "ui_capture_mode_element": {
+    "message": "Element"
+  },
+  "ui_capture_mode_scrollContainer": {
+    "message": "Scrolling area"
+  },
+  "ui_capture_mode_selector": {
+    "message": "Selector"
+  },
+  "ui_capture_mode_allTabs": {
+    "message": "All tabs"
+  },
+  "error_E_EXPORT_body": {
+    "message": "The export could not be completed. Try another format."
+  },
+  "error_E_CLIPBOARD_body": {
+    "message": "Clipboard access is unavailable. Check the browser permission and try again."
+  },
+  "onboarding_skip": {
+    "message": "Skip tour"
+  },
+  "onboarding_progress": {
+    "message": "Onboarding progress"
+  },
+  "onboarding_progressLabel": {
+    "message": "Step"
+  },
+  "onboarding_continue": {
+    "message": "Continue"
+  },
+  "onboarding_back": {
+    "message": "Back"
+  },
+  "onboarding_footer": {
+    "message": "No account. No cloud. Your browser, your work."
+  },
+  "onboarding_rail_eyebrow": {
+    "message": "WELCOME TO FULLPAGELAB"
+  },
+  "onboarding_rail_title": {
+    "message": "Keep the page intact."
+  },
+  "onboarding_rail_body": {
+    "message": "Capture long pages as one image, review the result locally and keep the history close."
+  },
+  "onboarding_rail_trustTitle": {
+    "message": "Local-first by design"
+  },
+  "onboarding_rail_trustBody": {
+    "message": "Your captures stay in this browser until you choose otherwise."
+  },
+  "onboarding_step_welcome": {
+    "message": "Start here"
+  },
+  "onboarding_step_welcomeMeta": {
+    "message": "How capture works"
+  },
+  "onboarding_step_privacy": {
+    "message": "Privacy"
+  },
+  "onboarding_step_privacyMeta": {
+    "message": "Clear, local and in your control"
+  },
+  "onboarding_step_try": {
+    "message": "Try it"
+  },
+  "onboarding_step_tryMeta": {
+    "message": "Try it on a real webpage"
+  },
+  "onboarding_preview_label": {
+    "message": "FullPageLab capture flow"
+  },
+  "onboarding_preview_mode": {
+    "message": "Full-page mode"
+  },
+  "onboarding_preview_ready": {
+    "message": "Ready to capture"
+  },
+  "onboarding_preview_badge": {
+    "message": "Scroll. Stitch. Done."
+  },
+  "onboarding_preview_local": {
+    "message": "Stays local"
+  },
+  "onboarding_welcome_eyebrow": {
+    "message": "A short introduction"
+  },
+  "onboarding_welcome_title": {
+    "message": "One clean image for a long page."
+  },
+  "onboarding_welcome_body": {
+    "message": "FullPageLab captures the page without splitting it and manages cookie layers and fixed UI by the rules you choose."
+  },
+  "onboarding_feature_fullPage_title": {
+    "message": "Choose the page"
+  },
+  "onboarding_feature_fullPage_body": {
+    "message": "Capture the active webpage from top to bottom."
+  },
+  "onboarding_feature_smart_title": {
+    "message": "Prepare the page"
+  },
+  "onboarding_feature_smart_body": {
+    "message": "Handle fixed UI and cookie layers without dirtying the result."
+  },
+  "onboarding_feature_private_title": {
+    "message": "Review the result"
+  },
+  "onboarding_feature_private_body": {
+    "message": "Inspect it locally and decide what leaves your browser."
+  },
+  "onboarding_privacy_eyebrow": {
+    "message": "Private by default"
+  },
+  "onboarding_privacy_title": {
+    "message": "Your screenshots stay in your browser."
+  },
+  "onboarding_privacy_heroTitle": {
+    "message": "Local-first capture"
+  },
+  "onboarding_privacy_heroBody": {
+    "message": "No account, no upload, no hidden sync."
+  },
+  "onboarding_privacy_localTitle": {
+    "message": "Local processing"
+  },
+  "onboarding_privacy_localBody": {
+    "message": "Images are prepared inside this extension."
+  },
+  "onboarding_privacy_permissionTitle": {
+    "message": "Only when you ask"
+  },
+  "onboarding_privacy_permissionBody": {
+    "message": "Optional exports and integrations are user-triggered."
+  },
+  "onboarding_privacy_storageTitle": {
+    "message": "Protect your local history"
+  },
+  "onboarding_privacy_storageBody": {
+    "message": "Let Chrome keep local data available between sessions."
+  },
+  "onboarding_privacy_storageAction": {
+    "message": "Enable storage"
+  },
+  "onboarding_privacy_storageBusy": {
+    "message": "Checking…"
+  },
+  "onboarding_privacy_storageEnabled": {
+    "message": "Enabled"
+  },
+  "onboarding_privacy_storageGranted": {
+    "message": "Persistent storage is enabled."
+  },
+  "onboarding_privacy_storageDeclined": {
+    "message": "You can enable this later from Options."
+  },
+  "onboarding_privacy_telemetryTitle": {
+    "message": "Help improve FullPageLab"
+  },
+  "onboarding_privacy_telemetryBody": {
+    "message": "Share anonymous diagnostics. Off by default, and never includes screenshots."
+  },
+  "onboarding_try_eyebrow": {
+    "message": "Try it on a webpage"
+  },
+  "onboarding_try_title": {
+    "message": "Make your first capture on a real page."
+  },
+  "onboarding_try_body": {
+    "message": "This setup screen is an extension page, so it cannot be prepared for full-page capture. Open a sample webpage, then use the FullPageLab icon there."
+  },
+  "onboarding_try_previewLabel": {
+    "message": "FullPageLab onboarding"
+  },
+  "onboarding_try_cardEyebrow": {
+    "message": "Try it now"
+  },
+  "onboarding_try_cardTitle": {
+    "message": "A complete page, in one frame."
+  },
+  "onboarding_try_cardBody": {
+    "message": "No manual scrolling. No pasted-together pieces."
+  },
+  "onboarding_try_capture": {
+    "message": "Open sample webpage"
+  },
+  "onboarding_try_openDemo": {
+    "message": "Open sample webpage"
+  },
+  "onboarding_try_boundaryTitle": {
+    "message": "The setup tab cannot be captured"
+  },
+  "onboarding_try_boundaryBody": {
+    "message": "Chrome does not allow content scripts on extension pages, so FullPageLab will not create a misleading result here."
+  },
+  "onboarding_try_boundaryNote": {
+    "message": "Click the FullPageLab icon on the webpage that opens in the new tab."
+  },
+  "onboarding_try_startedTitle": {
+    "message": "The sample page is open."
+  },
+  "onboarding_try_startedBody": {
+    "message": "Switch to the new tab and click the FullPageLab icon. Choose Full page to make your first real capture."
+  },
+  "onboarding_complete_eyebrow": {
+    "message": "You're all set"
+  },
+  "onboarding_complete_title": {
+    "message": "Welcome to your capture lab."
+  },
+  "onboarding_complete_body": {
+    "message": "Pin FullPageLab to your toolbar and capture the next page when inspiration strikes."
+  },
+  "onboarding_complete_pillCapture": {
+    "message": "Capture anywhere"
+  },
+  "onboarding_complete_pillPrivate": {
+    "message": "Private by default"
+  },
+  "onboarding_complete_pillHistory": {
+    "message": "Local history"
+  },
+  "onboarding_pin_title": {
+    "message": "Pin FullPageLab"
+  },
+  "onboarding_pin_body": {
+    "message": "Open the puzzle menu in Chrome and pin FullPageLab for one-click access."
+  },
+  "ui_editor_zoom": {
+    "message": "Zoom"
+  },
+  "ui_editor_zoomIn": {
+    "message": "Zoom in"
+  },
+  "ui_editor_zoomOut": {
+    "message": "Zoom out"
+  },
+  "ui_editor_zoomFit": {
+    "message": "Fit"
+  },
+  "ui_editor_zoomActual": {
+    "message": "100%"
+  }
 }

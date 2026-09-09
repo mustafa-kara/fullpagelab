@@ -36,3 +36,29 @@ export function fitCanvasToLimits(image: Size, { maxSide = CANVAS_MAX_SIDE, maxA
     zoom,
   };
 }
+
+export interface FitToViewportOptions {
+  /** Never enlarge past this; a small capture should not fill a wide stage. */
+  maxZoom?: number;
+  minZoom?: number;
+}
+
+/**
+ * Zoom that shows the whole capture inside the visible stage.
+ *
+ * The editor opens on the image at its natural size, so a 1,920px capture in a
+ * ~1,100px stage arrives already cropped and cannot be zoomed out. This picks
+ * the scale that fits the width and height, and never enlarges past 1 so a
+ * small capture stays sharp.
+ */
+export function fitZoomToViewport(image: Size, viewport: Size, { maxZoom = 1, minZoom = 0.05 }: FitToViewportOptions = {}): number {
+  if (image.width <= 0 || image.height <= 0 || viewport.width <= 0 || viewport.height <= 0) return maxZoom;
+  const zoom = Math.min(viewport.width / image.width, viewport.height / image.height);
+  return Math.min(maxZoom, Math.max(minZoom, zoom));
+}
+
+/** Clamps a user-chosen zoom to the range the editor's controls allow. */
+export function clampZoom(zoom: number, { minZoom = 0.05, maxZoom = 4 }: FitToViewportOptions = {}): number {
+  if (!Number.isFinite(zoom)) return minZoom;
+  return Math.min(maxZoom, Math.max(minZoom, zoom));
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { toFabricOptions } from '../../src/editor/fabric-bridge';
-import { createAnnotation } from '../../src/lib/editor/annotation';
+import { ANNOTATION_STROKE, createAnnotation } from '../../src/lib/editor/annotation';
 
 const rect = { x: 10, y: 20, width: 100, height: 50 };
 
@@ -10,7 +10,7 @@ describe('fabric bridge', () => {
   });
 
   it('carries the stroke style across', () => {
-    expect(toFabricOptions(createAnnotation('rect', rect, { id: 'a2' }))).toMatchObject({ stroke: '#FF3B30', strokeWidth: 3 });
+    expect(toFabricOptions(createAnnotation('rect', rect, { id: 'a2' }))).toMatchObject({ stroke: ANNOTATION_STROKE, strokeWidth: 3 });
   });
 
   it('maps a none fill to a transparent fabric fill', () => {

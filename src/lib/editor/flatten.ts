@@ -1,5 +1,6 @@
 import type { Annotation } from '../../shared/types/editor';
 import type { Rect } from '../../shared/types/primitives';
+import { ANNOTATION_STROKE } from './annotation';
 
 /** The subset of CanvasRenderingContext2D the flatten pass uses. */
 export interface FlattenContext {
@@ -106,7 +107,7 @@ function drawOne(context: FlattenContext, annotation: Annotation): void {
       return;
     case 'marker': {
       const center = centerOf(rect);
-      context.fillStyle = style.fill === 'none' ? '#FF3B30' : style.fill;
+      context.fillStyle = style.fill === 'none' ? ANNOTATION_STROKE : style.fill;
       context.beginPath();
       context.ellipse(center.x, center.y, rect.width / 2, rect.height / 2, 0, 0, Math.PI * 2);
       context.fill();

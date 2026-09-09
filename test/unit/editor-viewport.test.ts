@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_MAX_AREA, CANVAS_MAX_SIDE, fitCanvasToLimits } from '../../src/lib/editor/viewport';
+import { CANVAS_MAX_AREA, CANVAS_MAX_SIDE, clampZoom, fitCanvasToLimits, fitZoomToViewport } from '../../src/lib/editor/viewport';
 
 describe('editor viewport fitting', () => {
   it('leaves an image that already fits at its natural size', () => {
@@ -57,5 +57,37 @@ describe('editor viewport fitting', () => {
     const fitted = fitCanvasToLimits({ width: 1920, height: 17_123 }, { maxSide: CANVAS_MAX_SIDE / 2, maxArea: CANVAS_MAX_AREA / 4 });
     expect(fitted.height * 2).toBeLessThanOrEqual(CANVAS_MAX_SIDE);
     expect(fitted.width * 2 * fitted.height * 2).toBeLessThanOrEqual(CANVAS_MAX_AREA);
+  });
+});
+
+describe('fitZoomToViewport', () => {
+  it('shrinks a capture that is wider than the stage', () => {
+    // The editor used to open at natural size, so a 1920px capture in a 1100px
+    // stage arrived cropped with no way to zoom out.
+    expect(fitZoomToViewport({ width: 1920, height: 1086 }, { width: 1100, height: 600 })).toBeCloseTo(600 / 1086, 5);
+  });
+
+  it('fits by width when the capture is the wider side', () => {
+    expect(fitZoomToViewport({ width: 2000, height: 500 }, { width: 1000, height: 900 })).toBeCloseTo(0.5, 5);
+  });
+
+  it('never enlarges a capture smaller than the stage', () => {
+    expect(fitZoomToViewport({ width: 200, height: 100 }, { width: 1000, height: 900 })).toBe(1);
+  });
+
+  it('falls back to the maximum when a dimension is missing', () => {
+    expect(fitZoomToViewport({ width: 0, height: 100 }, { width: 500, height: 500 })).toBe(1);
+  });
+});
+
+describe('clampZoom', () => {
+  it('keeps a zoom inside the range the controls offer', () => {
+    expect(clampZoom(9)).toBe(4);
+    expect(clampZoom(0.001)).toBe(0.05);
+    expect(clampZoom(0.5)).toBe(0.5);
+  });
+
+  it('treats a non-finite zoom as the minimum rather than propagating NaN', () => {
+    expect(clampZoom(Number.NaN)).toBe(0.05);
   });
 });

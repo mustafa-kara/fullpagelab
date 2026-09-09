@@ -215,3 +215,30 @@ export async function stageColorShares(page: Page): Promise<{ distinct: number; 
     return { distinct: counts.size, shares };
   }, shot.toString('base64'));
 }
+
+/** Pixels of the editor stage that changed between two screenshots, as a share. */
+export async function stageChangeShare(page: Page, before: Buffer, after: Buffer): Promise<number> {
+  return page.evaluate(async ({ first, second }) => {
+    const decode = async (encoded: string): Promise<HTMLImageElement> => {
+      const image = new Image();
+      await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = `data:image/png;base64,${encoded}`; });
+      return image;
+    };
+    const [a, b] = [await decode(first), await decode(second)];
+    const canvas = document.createElement('canvas');
+    canvas.width = a.naturalWidth;
+    canvas.height = a.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Comparison canvas has no 2D context.');
+    context.drawImage(a, 0, 0);
+    const pixelsBefore = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(b, 0, 0);
+    const pixelsAfter = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let differing = 0;
+    for (let offset = 0; offset < pixelsBefore.length; offset += 4) {
+      if (pixelsBefore[offset] !== pixelsAfter[offset] || pixelsBefore[offset + 1] !== pixelsAfter[offset + 1] || pixelsBefore[offset + 2] !== pixelsAfter[offset + 2]) differing += 1;
+    }
+    return differing / (pixelsBefore.length / 4);
+  }, { first: before.toString('base64'), second: after.toString('base64') });
+}

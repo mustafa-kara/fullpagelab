@@ -82,6 +82,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
    completely, so the frame belongs on the wrapper Fabric creates. */
 .editor-stage .canvas-container { flex: none; border: 1px solid #cbd6e2; background: white; box-shadow: 0 10px 24px rgb(20 34 56 / 10%); }
 .editor-stage-error { max-width: 460px; margin: auto; color: var(--result-muted); font-size: 13px; text-align: center; }
+.editor-zoom { display: flex; align-items: center; gap: 6px; }
+.editor-zoom-value { min-width: 48px; color: var(--result-muted); font-size: 12px; font-weight: 700; text-align: center; }
 @keyframes result-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .result-skeleton { animation: none; } }
 @media (max-width: 900px) { .result-header { grid-template-columns: 1fr auto; } .result-heading { grid-column: 1 / -1; grid-row: 2; } .result-header-actions { grid-column: 2; grid-row: 1; } .result-layout { grid-template-columns: 1fr; } .export-panel { order: 2; } .viewer-stage { max-height: 70vh; } }
