@@ -171,3 +171,47 @@ export async function resultPixels(resultPage: Page, samples: Array<{ x: number;
     };
   }, samples);
 }
+
+/**
+ * Shares of each colour actually painted inside the editor stage, read back from
+ * a screenshot.
+ *
+ * Reading the Fabric canvas with `getImageData` measures the drawing buffer,
+ * which stays fully painted even when nothing reaches the screen: the editor
+ * once rendered the capture correctly while an opaque sibling canvas covered it,
+ * and buffer-based assertions passed against a blank window. Only the composited
+ * screenshot proves what the user sees.
+ */
+export async function stageColorShares(page: Page): Promise<{ distinct: number; shares: Record<string, number> }> {
+  const stage = await page.locator('.editor-stage').boundingBox();
+  if (!stage) throw new Error('The editor stage has no layout box.');
+  const shot = await page.screenshot({ clip: stage });
+  return page.evaluate(async (encoded) => {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = `data:image/png;base64,${encoded}`;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Screenshot canvas has no 2D context.');
+    context.drawImage(image, 0, 0);
+    const counts = new Map<string, number>();
+    let total = 0;
+    for (let y = 0; y < canvas.height; y += 4) {
+      for (let x = 0; x < canvas.width; x += 4) {
+        const [r, g, b] = context.getImageData(x, y, 1, 1).data;
+        const key = `${r},${g},${b}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+        total += 1;
+      }
+    }
+    // A Map cannot cross the evaluate boundary, so shares come back as an object.
+    const shares: Record<string, number> = {};
+    for (const [key, count] of counts) shares[key] = count / total;
+    return { distinct: counts.size, shares };
+  }, shot.toString('base64'));
+}

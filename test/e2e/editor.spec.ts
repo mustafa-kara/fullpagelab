@@ -1,10 +1,25 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { captureRequest, driverPath, fixtureOrigin, sendCapture } from './capture-helpers';
+import { captureRequest, driverPath, fixtureOrigin, sendCapture, stageColorShares } from './capture-helpers';
 import { launchExtension } from './extension';
 
 const locales = ['en', 'tr'] as const;
+
+/**
+ * Fails when the editor stage is mostly one flat colour.
+ *
+ * The fixtures are built from distinct colour bands, so a stage showing the
+ * capture is many-coloured while a blank one is overwhelmingly white. This
+ * reads the composited screenshot rather than the canvas buffer, which stays
+ * painted even when something covers it on screen.
+ */
+async function expectStageShowsCapture(page: Page, description: string): Promise<void> {
+  const { distinct, shares } = await stageColorShares(page);
+  const white = shares['255,255,255'] ?? 0;
+  expect(white, `${description}: the visible editor stage must show the capture, not a blank surface`).toBeLessThan(0.6);
+  expect(distinct, `${description}: the visible editor stage must show the capture's colours`).toBeGreaterThan(3);
+}
 
 /**
  * Chrome picks the locale from the accept-languages chain, which differs between
@@ -92,6 +107,7 @@ test('loads the base image for a capture kept out of history', async ({}, testIn
   // A scale factor other than 1 is what most laptops report. Fabric sizes its
   // backing store by that ratio, so a DPR-1-only test never exercised the sizes
   // the editor actually allocates on a real machine.
+  testInfo.setTimeout(120_000);
   const { context, extensionId } = await launchExtension(testInfo, { deviceScaleFactor: 2 });
   try {
     const driver = await context.newPage();
@@ -113,26 +129,99 @@ test('loads the base image for a capture kept out of history', async ({}, testIn
     await resultPage.locator('[data-testid="editor-toolbar"][data-ready="true"]').waitFor();
 
     await expect(resultPage.locator('[data-testid="editor-load-error"]'), 'the editor must not report a load failure').toHaveCount(0);
+    await expectStageShowsCapture(resultPage, 'a capture kept out of history');
+  } finally {
+    await context.close();
+  }
+});
 
-    // Sampling a grid across the whole surface, rather than one corner, is what
-    // distinguishes a drawn capture from a canvas that only has a painted edge.
-    const painted = await resultPage.locator('.editor-stage canvas.lower-canvas').evaluate((canvas: HTMLCanvasElement) => {
+/**
+ * The editor renders through a stack of canvases, and both the browser's canvas
+ * limits and Fabric's retina backing store scale with the device pixel ratio, so
+ * a capture that renders at ratio 1 can fail at the ratios real machines report.
+ * A very tall capture exercises the same limits from the other direction.
+ */
+for (const [fixture, deviceScaleFactor] of [['very-long.html', 1], ['long.html', 2], ['very-long.html', 2]] as Array<[string, number]>) {
+  test(`shows the capture in the editor for ${fixture} at scale factor ${deviceScaleFactor}`, async ({}, testInfo) => {
+    // Stitching a 34,000px capture and decoding it into the editor runs past the
+    // default budget on a loaded machine.
+    testInfo.setTimeout(120_000);
+    const { context, extensionId } = await launchExtension(testInfo, { deviceScaleFactor });
+    try {
+      const driver = await context.newPage();
+      await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+      const page = await context.newPage();
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.goto(`${fixtureOrigin}/${fixture}`);
+      const resultPage = await sendCapture(context, extensionId, driver, page, captureRequest('fullPage'), testInfo);
+
+      await resultPage.locator('[data-testid="result-viewer"] img').waitFor({ state: 'visible' });
+      await resultPage.locator('[data-testid="result-edit"]').click();
+      await resultPage.locator('[data-testid="editor-toolbar"][data-ready="true"]').waitFor();
+      await expect(resultPage.locator('[data-testid="editor-load-error"]')).toHaveCount(0);
+
+      await expectStageShowsCapture(resultPage, `${fixture} at scale factor ${deviceScaleFactor}`);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+/** A drawn annotation has to reach the screen, not just the document model. */
+test('shows a drawn rectangle on screen', async ({}, testInfo) => {
+  const { context, extensionId } = await launchExtension(testInfo, { deviceScaleFactor: 2 });
+  try {
+    const driver = await context.newPage();
+    await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`${fixtureOrigin}/long.html`);
+    const resultPage = await sendCapture(context, extensionId, driver, page, captureRequest('fullPage'), testInfo);
+
+    await resultPage.locator('[data-testid="result-viewer"] img').waitFor({ state: 'visible' });
+    await resultPage.locator('[data-testid="result-edit"]').click();
+    await resultPage.locator('[data-testid="editor-toolbar"][data-ready="true"]').waitFor();
+
+    const stage = await resultPage.locator('.editor-stage').boundingBox();
+    if (!stage) throw new Error('The editor stage has no layout box.');
+    const before = await resultPage.screenshot({ clip: stage });
+
+    await resultPage.locator('[data-tool="rect"]').click();
+    const surface = await resultPage.locator('.editor-stage canvas.upper-canvas').boundingBox();
+    if (!surface) throw new Error('The editor drawing surface has no layout box.');
+    const startX = Math.max(surface.x + 20, stage.x + 30);
+    const startY = Math.max(surface.y + 20, stage.y + 30);
+    await resultPage.mouse.move(startX, startY);
+    await resultPage.mouse.down();
+    await resultPage.mouse.move(startX + 220, startY + 160, { steps: 12 });
+    await resultPage.mouse.up();
+
+    const after = await resultPage.screenshot({ clip: stage });
+    const changed = await resultPage.evaluate(async ({ first, second }) => {
+      const decode = async (encoded: string): Promise<HTMLImageElement> => {
+        const image = new Image();
+        await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = `data:image/png;base64,${encoded}`; });
+        return image;
+      };
+      const [a, b] = [await decode(first), await decode(second)];
+      const canvas = document.createElement('canvas');
+      canvas.width = a.naturalWidth;
+      canvas.height = a.naturalHeight;
       const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) throw new Error('Editor canvas has no 2D context.');
-      let opaque = 0;
-      let sampled = 0;
-      for (let row = 0; row < 8; row += 1) {
-        for (let column = 0; column < 8; column += 1) {
-          const x = Math.floor((column + 0.5) * canvas.width / 8);
-          const y = Math.floor((row + 0.5) * canvas.height / 8);
-          sampled += 1;
-          if (context.getImageData(x, y, 1, 1).data[3] !== 0) opaque += 1;
-        }
+      if (!context) throw new Error('Comparison canvas has no 2D context.');
+      context.drawImage(a, 0, 0);
+      const pixelsBefore = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(b, 0, 0);
+      const pixelsAfter = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      let differing = 0;
+      for (let offset = 0; offset < pixelsBefore.length; offset += 4) {
+        if (pixelsBefore[offset] !== pixelsAfter[offset] || pixelsBefore[offset + 1] !== pixelsAfter[offset + 1] || pixelsBefore[offset + 2] !== pixelsAfter[offset + 2]) differing += 1;
       }
-      return { opaque, sampled };
-    });
+      return differing / (pixelsBefore.length / 4);
+    }, { first: before.toString('base64'), second: after.toString('base64') });
 
-    expect(painted.opaque, 'the editor canvas must show the capture across its whole surface, not a blank one').toBe(painted.sampled);
+    expect(changed, 'drawing a rectangle must visibly change the editor stage').toBeGreaterThan(0.005);
   } finally {
     await context.close();
   }
