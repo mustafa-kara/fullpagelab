@@ -1,0 +1,81 @@
+<style>
+  :root {
+    --ink: #142238;
+    --muted: #64748b;
+    --line: #dbe4ef;
+    --surface: #ffffff;
+    --canvas: #f3f6fa;
+    --accent: #2b72e8;
+    --accent-soft: #e8f0ff;
+    --success: #0f8a68;
+  }
+
+  .intro { max-width: 900px; margin-bottom: 22px; }
+  .intro h2 { margin-bottom: 8px; color: var(--ink); }
+  .intro .subtitle { color: var(--muted); }
+  .options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .option { overflow: hidden; border: 1px solid #d6dfeb; border-radius: 16px; background: var(--surface); box-shadow: 0 8px 24px rgba(20,34,56,.08); cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+  .option:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 14px 30px rgba(43,114,232,.15); }
+  .option.selected { border: 2px solid var(--accent); box-shadow: 0 0 0 4px rgba(43,114,232,.14); }
+  .option .card-body { padding: 15px 16px 17px; }
+  .option h3 { margin: 0 0 6px; color: var(--ink); font-size: 16px; }
+  .option p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  .mini-app { height: 330px; padding: 10px; background: #eef3f8; }
+  .mini-window { height: 100%; overflow: hidden; border: 1px solid #ced9e6; border-radius: 10px; background: #fff; box-shadow: 0 5px 12px rgba(20,34,56,.10); }
+  .mini-topbar { display: flex; align-items: center; gap: 7px; height: 31px; padding: 0 9px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 9px; }
+  .mini-logo { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 5px; background: var(--accent); color: #fff; font-size: 8px; font-weight: 700; }
+  .mini-dots { margin-left: auto; letter-spacing: 2px; }
+  .fake-site { height: 100%; padding: 13px; background: linear-gradient(180deg,#f9fbfd 0%,#fff 25%,#f2f6fb 100%); }
+  .fake-site .hero { height: 58px; margin-bottom: 10px; border-radius: 8px; background: linear-gradient(120deg,#183b73,#2b72e8 55%,#6bb6e9); }
+  .fake-site .headline { width: 72%; height: 9px; margin-bottom: 7px; border-radius: 10px; background: #1f3550; }
+  .fake-site .copy { width: 94%; height: 6px; margin-bottom: 5px; border-radius: 10px; background: #bdc9d8; }
+  .fake-site .copy.short { width: 68%; }
+  .fake-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 16px; }
+  .fake-grid span { display: block; height: 44px; border: 1px solid #d7e2ee; border-radius: 7px; background: #fff; }
+  .layout-a .mini-content { display: grid; grid-template-columns: 1fr 112px; height: calc(100% - 31px); }
+  .layout-a .mini-preview { overflow: hidden; padding: 9px; background: #e6ecf3; }
+  .layout-a .mini-panel { padding: 10px 9px; border-left: 1px solid var(--line); background: #fff; }
+  .panel-label { margin: 0 0 8px; color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .format-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; margin-bottom: 11px; }
+  .format-row span { padding: 5px 2px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font-size: 7px; text-align: center; }
+  .format-row span.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .fake-field { height: 23px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 5px; color: #7c8da4; font-size: 7px; line-height: 21px; padding: 0 6px; white-space: nowrap; overflow: hidden; }
+  .fake-button { height: 25px; border-radius: 5px; background: var(--accent); color: #fff; font-size: 8px; font-weight: 700; line-height: 25px; text-align: center; }
+  .fake-button.secondary { margin-top: 5px; border: 1px solid var(--line); background: #fff; color: var(--ink); }
+  .layout-b .mini-content { position: relative; height: calc(100% - 31px); padding: 9px; background: #dfe8f2; }
+  .layout-b .mini-preview { height: 100%; overflow: hidden; border-radius: 7px; background: #f7fafd; box-shadow: 0 4px 15px rgba(20,34,56,.15); }
+  .layout-b .mini-actions { position: absolute; right: 18px; bottom: 17px; left: 18px; display: flex; align-items: center; gap: 5px; padding: 7px; border: 1px solid rgba(255,255,255,.8); border-radius: 8px; background: rgba(255,255,255,.93); box-shadow: 0 6px 16px rgba(20,34,56,.14); }
+  .layout-b .mini-actions span { height: 19px; padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font-size: 7px; line-height: 17px; }
+  .layout-b .mini-actions span.primary { margin-left: auto; border-color: var(--accent); background: var(--accent); color: #fff; }
+  .layout-c .mini-content { display: grid; grid-template-rows: 1fr 98px; height: calc(100% - 31px); }
+  .layout-c .mini-preview { overflow: hidden; padding: 9px; background: #e6ecf3; }
+  .layout-c .mini-panel { display: grid; grid-template-columns: 1fr 100px; gap: 10px; padding: 9px; border-top: 1px solid var(--line); background: #fff; }
+  .layout-c .mini-panel .format-row { align-self: center; margin: 0; }
+  .layout-c .mini-panel .fake-button { align-self: center; }
+  .option-tag { display: inline-flex; margin-top: 12px; padding: 4px 7px; border-radius: 999px; background: #eef4ff; color: var(--accent); font-size: 10px; font-weight: 700; }
+  @media (max-width: 980px) { .options { grid-template-columns: 1fr; } .mini-app { height: 300px; } }
+</style>
+
+<div class="intro">
+  <h2>Tarama sonrası sonuç ekranı için yön seçimi</h2>
+  <p class="subtitle">Capture tamamlanınca otomatik indirme yerine açılacak ekranın ana düzenini seçelim. Üç seçenekte de tam önizleme, format seçimi, kopyalama ve indirme bulunuyor.</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="focused-workspace" onclick="toggleSelect(this)">
+    <div class="mini-app layout-a"><div class="mini-window"><div class="mini-topbar"><span class="mini-logo">F</span><strong>FullPageLab</strong><span>Sonuç</span><span class="mini-dots">•••</span></div><div class="mini-content"><div class="mini-preview"><div class="fake-site"><div class="hero"></div><div class="headline"></div><div class="copy"></div><div class="copy"></div><div class="copy short"></div><div class="fake-grid"><span></span><span></span><span></span></div></div></div><div class="mini-panel"><p class="panel-label">Dışa aktar</p><div class="format-row"><span class="active">PNG</span><span>JPG</span><span>WEBP</span><span>PDF</span></div><div class="fake-field">sayfa_adi.png</div><div class="fake-button">İndir</div><div class="fake-button secondary">Kopyala</div></div></div></div></div>
+    <div class="card-body"><h3>A — Odaklı çalışma alanı</h3><p>Sol tarafta büyük ve kaydırılabilir önizleme, sağda her zaman görünür dışa aktarma paneli.</p><span class="option-tag">En dengeli</span></div>
+  </div>
+
+  <div class="option" data-choice="preview-first" onclick="toggleSelect(this)">
+    <div class="mini-app layout-b"><div class="mini-window"><div class="mini-topbar"><span class="mini-logo">F</span><strong>FullPageLab</strong><span>Önizleme</span><span class="mini-dots">•••</span></div><div class="mini-content"><div class="mini-preview"><div class="fake-site"><div class="hero"></div><div class="headline"></div><div class="copy"></div><div class="copy"></div><div class="copy short"></div><div class="fake-grid"><span></span><span></span><span></span></div></div></div><div class="mini-actions"><span>100%</span><span>−</span><span>+</span><span>PDF</span><span class="primary">İndir</span></div></div></div></div>
+    <div class="card-body"><h3>B — Önizleme odaklı</h3><p>Görüntü tüm alanı kaplar; kopyalama, format ve indirme kontrolleri altta yüzen bir çubukta.</p><span class="option-tag">Görsel ağırlıklı</span></div>
+  </div>
+
+  <div class="option" data-choice="quick-export" onclick="toggleSelect(this)">
+    <div class="mini-app layout-c"><div class="mini-window"><div class="mini-topbar"><span class="mini-logo">F</span><strong>FullPageLab</strong><span>Hızlı kayıt</span><span class="mini-dots">•••</span></div><div class="mini-content"><div class="mini-preview"><div class="fake-site"><div class="hero"></div><div class="headline"></div><div class="copy"></div><div class="copy"></div><div class="copy short"></div><div class="fake-grid"><span></span><span></span><span></span></div></div></div><div class="mini-panel"><div><p class="panel-label">Format seç</p><div class="format-row"><span class="active">PNG</span><span>JPG</span><span>PDF</span><span>WEBP</span></div><div class="fake-field">dosya adı ve kalite</div></div><div class="fake-button">Kaydet</div></div></div></div></div>
+    <div class="card-body"><h3>C — Hızlı kayıt</h3><p>Önizleme üstte kalır; format ve ana aksiyonlar altta kompakt bir sonuç kartında toplanır.</p><span class="option-tag">En kompakt</span></div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:22px">Bir seçeneğe tıklayıp sonrasında neyi değiştirmek istediğini yazabilirsin. Bu seçim görsel yönü belirler; sonraki adımda işlevsel akışı ve bileşen durumlarını netleştireceğiz.</p>

@@ -8,3 +8,7 @@ test-results/
 .vscode/
 .idea/
 .DS_Store
+
+# Brainstorm scratch: the HTML drafts are kept, but the preview server's
+# state carries absolute paths and a random port from one machine.
+.superpowers/**/state/
