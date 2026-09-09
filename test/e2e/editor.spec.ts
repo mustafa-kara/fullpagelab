@@ -89,7 +89,10 @@ test('warns that blur is reversible and redaction is permanent', async ({}, test
  * the URL the result page already resolved.
  */
 test('loads the base image for a capture kept out of history', async ({}, testInfo) => {
-  const { context, extensionId } = await launchExtension(testInfo);
+  // A scale factor other than 1 is what most laptops report. Fabric sizes its
+  // backing store by that ratio, so a DPR-1-only test never exercised the sizes
+  // the editor actually allocates on a real machine.
+  const { context, extensionId } = await launchExtension(testInfo, { deviceScaleFactor: 2 });
   try {
     const driver = await context.newPage();
     await driver.goto(`chrome-extension://${extensionId}${driverPath}`);
@@ -109,16 +112,27 @@ test('loads the base image for a capture kept out of history', async ({}, testIn
     await resultPage.locator('[data-testid="result-edit"]').click();
     await resultPage.locator('[data-testid="editor-toolbar"][data-ready="true"]').waitFor();
 
+    await expect(resultPage.locator('[data-testid="editor-load-error"]'), 'the editor must not report a load failure').toHaveCount(0);
+
+    // Sampling a grid across the whole surface, rather than one corner, is what
+    // distinguishes a drawn capture from a canvas that only has a painted edge.
     const painted = await resultPage.locator('.editor-stage canvas.lower-canvas').evaluate((canvas: HTMLCanvasElement) => {
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
       if (!context) throw new Error('Editor canvas has no 2D context.');
-      const { data } = context.getImageData(0, 0, Math.min(60, canvas.width), Math.min(60, canvas.height));
       let opaque = 0;
-      for (let offset = 3; offset < data.length; offset += 4) if (data[offset] !== 0) opaque += 1;
-      return opaque;
+      let sampled = 0;
+      for (let row = 0; row < 8; row += 1) {
+        for (let column = 0; column < 8; column += 1) {
+          const x = Math.floor((column + 0.5) * canvas.width / 8);
+          const y = Math.floor((row + 0.5) * canvas.height / 8);
+          sampled += 1;
+          if (context.getImageData(x, y, 1, 1).data[3] !== 0) opaque += 1;
+        }
+      }
+      return { opaque, sampled };
     });
 
-    expect(painted, 'the editor canvas must show the capture, not a blank surface').toBeGreaterThan(0);
+    expect(painted.opaque, 'the editor canvas must show the capture across its whole surface, not a blank one').toBe(painted.sampled);
   } finally {
     await context.close();
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_MAX_SIDE, fitCanvasToLimits } from '../../src/lib/editor/viewport';
+import { CANVAS_MAX_AREA, CANVAS_MAX_SIDE, fitCanvasToLimits } from '../../src/lib/editor/viewport';
 
 describe('editor viewport fitting', () => {
   it('leaves an image that already fits at its natural size', () => {
@@ -48,5 +48,14 @@ describe('editor viewport fitting', () => {
     const fitted = fitCanvasToLimits({ width: 8000, height: 8000 }, { maxSide: 4000 });
     expect(fitted.height).toBeLessThanOrEqual(4000);
     expect(fitted.zoom).toBeCloseTo(0.5, 5);
+  });
+
+  it('leaves room for the retina backing store when a scale factor is applied', () => {
+    // Fabric allocates width * devicePixelRatio internally, so a canvas that
+    // just fits at ratio 1 overflows the browser limit at ratio 2. Passing the
+    // divided limits keeps the real allocation inside the cap.
+    const fitted = fitCanvasToLimits({ width: 1920, height: 17_123 }, { maxSide: CANVAS_MAX_SIDE / 2, maxArea: CANVAS_MAX_AREA / 4 });
+    expect(fitted.height * 2).toBeLessThanOrEqual(CANVAS_MAX_SIDE);
+    expect(fitted.width * 2 * fitted.height * 2).toBeLessThanOrEqual(CANVAS_MAX_AREA);
   });
 });

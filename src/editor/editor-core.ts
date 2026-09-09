@@ -3,7 +3,7 @@ import { createAnnotation } from '../lib/editor/annotation';
 import { CommandStack } from '../lib/editor/command-stack';
 import { addLayer, nextMarkerNumber, removeLayer } from '../lib/editor/document';
 import { constrainRect, normalizeRect } from '../lib/editor/geometry';
-import { fitCanvasToLimits } from '../lib/editor/viewport';
+import { CANVAS_MAX_AREA, CANVAS_MAX_SIDE, fitCanvasToLimits } from '../lib/editor/viewport';
 import type { Annotation, AnnotationType, EditorDocument, ToolId } from '../shared/types/editor';
 import { toFabricOptions } from './fabric-bridge';
 
@@ -42,16 +42,43 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
 
   // Only a URL this function created may be revoked; a caller-supplied one is theirs.
   const ownedUrl = deps.imageUrl ? undefined : await blobUrlFor(initial);
-  const baseImage = await FabricImage.fromURL(deps.imageUrl ?? ownedUrl ?? '');
+  const sourceUrl = deps.imageUrl ?? ownedUrl;
+  if (!sourceUrl) {
+    canvas.dispose().catch(() => undefined);
+    throw new Error('The editor was opened without a base image to load.');
+  }
+
+  let baseImage: FabricImage;
+  try {
+    baseImage = await FabricImage.fromURL(sourceUrl);
+  } catch (cause: unknown) {
+    // Fabric resolves `fromURL` through an <img>, which reports decode and size
+    // failures as a bare event. Without this the editor opened onto a blank
+    // canvas that still looked ready, so the user saw no image and no error.
+    canvas.dispose().catch(() => undefined);
+    if (ownedUrl) URL.revokeObjectURL(ownedUrl);
+    throw new Error(`The capture image could not be decoded for editing (${describe(cause)}).`);
+  }
   baseImage.set({ selectable: false, evented: false, left: 0, top: 0 });
-  canvas.backgroundImage = baseImage;
-  // A full-page capture is often taller than the browser's canvas limit, which
-  // would allocate a blank surface. Size the canvas to what the browser allows
-  // and let the viewport zoom show the whole image; annotations keep working in
-  // image coordinates because Fabric maps pointer events through that zoom.
-  const fitted = fitCanvasToLimits(initial.canvas.size);
+
+  // The image the browser decoded is the only trustworthy source of the base
+  // size: `canvas.size` comes from capture metadata, which disagrees with the
+  // file whenever the pipeline rounds or rescales. Sizing the canvas from
+  // metadata while drawing an image of another size leaves the visible area
+  // blank, so measure the bitmap and scale it onto the canvas explicitly.
+  const natural = { width: baseImage.width || initial.canvas.size.width, height: baseImage.height || initial.canvas.size.height };
+
+  // Fabric multiplies its backing store by the device pixel ratio for crisp
+  // retina output, so the limit that matters is the CSS size times that ratio.
+  const retina = canvas.getRetinaScaling() || 1;
+  const fitted = fitCanvasToLimits(natural, { maxSide: CANVAS_MAX_SIDE / retina, maxArea: CANVAS_MAX_AREA / (retina * retina) });
   canvas.setDimensions({ width: fitted.width, height: fitted.height });
   canvas.setZoom(fitted.zoom);
+  // Scene coordinates stay in image pixels, so the background must cover the
+  // untransformed image rather than the shrunken canvas.
+  baseImage.scaleX = natural.width / (baseImage.width || natural.width);
+  baseImage.scaleY = natural.height / (baseImage.height || natural.height);
+  canvas.backgroundImage = baseImage;
   canvas.requestRenderAll();
 
   function emit(): void {
@@ -117,6 +144,12 @@ export async function createEditorCore(canvasElement: HTMLCanvasElement, initial
       if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     },
   };
+}
+
+function describe(cause: unknown): string {
+  if (cause instanceof Error) return cause.message;
+  if (cause instanceof Event) return `${cause.type} while loading the image`;
+  return String(cause);
 }
 
 async function blobUrlFor(doc: EditorDocument): Promise<string> {

@@ -23,17 +23,25 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let disposed = false;
     const element = canvasRef.current;
     if (!element) return;
+    setFailed(false);
     void createEditor(element, doc, { imageUrl }).then((handle) => {
       if (disposed) { handle.dispose(); return; }
       handleRef.current = handle;
       // Tools and Save only work once the canvas exists, so the toolbar advertises readiness for tests and screen readers.
       setReady(true);
-    }).catch((error: unknown) => setMessage(error instanceof Error ? error.message : t('error.E_UNKNOWN.body')));
+    }).catch((error: unknown) => {
+      if (disposed) return;
+      // A failure here used to leave an empty stage that still looked usable.
+      // Surface it so the editor never silently shows a blank canvas.
+      setFailed(true);
+      setMessage(error instanceof Error ? error.message : t('error.E_UNKNOWN.body'));
+    });
     return () => {
       disposed = true;
       setReady(false);
@@ -81,7 +89,7 @@ export function EditorPanel({ doc, captureId, imageUrl, onClose }: EditorPanelPr
       <button type="button" class="button button-primary" data-testid="editor-save" disabled={busy || !ready} onClick={() => void save()}>{busy ? t('ui.editor.saving') : t('ui.editor.save')}</button>
     </div>
     <p class="editor-privacy-note" data-testid="editor-privacy-note">{privacyNote}</p>
-    <div class="editor-stage"><canvas ref={canvasRef} /></div>
+    <div class="editor-stage"><canvas ref={canvasRef} hidden={failed} />{failed && <p class="editor-stage-error" role="alert" data-testid="editor-load-error">{message || t('error.E_UNKNOWN.body')}</p>}</div>
     {message && <div class="toast" role="status" aria-live="polite">{message}</div>}
   </section>;
 }
