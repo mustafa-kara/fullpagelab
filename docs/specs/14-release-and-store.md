@@ -2,6 +2,8 @@
 
 > Web Store listing gereksinimleri, izin gerekçe metinleri, gizlilik politikası taslağı, veri kullanımı beyanı, tek-amaç uyumu, inceleme riskleri, sürümleme, build varyantları ve CI/CD, release checklist, güncelleme/migration stratejisi, destek kanalları, tanılama, kurumsal dağıtım, monetizasyon önerisi. Gereksinim ID önek: `REQ-REL-*`.
 
+> **Yayın durumu (2026-08-21):** Store metni yalnız mevcut `fullPage` ve `visible` yakalama, sonuç önizleme ve kullanıcı onaylı PNG/JPEG/WebP/PDF dışa aktarımını vaat eder. Selection, element, scrolling area, all-tabs, editör, gelişmiş History, OCR, batch, compare ve entegrasyon iddiaları ilgili özellikler tamamlanıp doğrulanmadan listing'e eklenmez. Aşağıdaki ileri seviye izin ve monetizasyon bölümleri gelecek sürüm planıdır; 0.1.0 listing vaadi değildir.
+
 İçindekiler: 1 Listing · 2 İzin gerekçeleri · 3 Gizlilik politikası · 4 Veri kullanımı beyanı · 5 Tek amaç · 6 İnceleme riskleri · 7 Sürümleme · 8 Build varyantları ve CI/CD · 9 Release checklist · 10 Güncelleme stratejisi · 11 Destek ve issue şablonları · 12 Tanılama (telemetri-siz) · 13 Kurumsal dağıtım · 14 Monetizasyon önerisi · 15 Kabul kriterleri
 
 ---
@@ -10,12 +12,12 @@
 
 | Alan | Değer / kural |
 |---|---|
-| Ad | `__MSG_appName__` — öneri: **"FullPageLab — Full Page Screenshot, PDF & History"** (≤ 45 karakter; marka adı ürün sahibi tarafından kesinleştirilir; kod adı `ssx`) |
-| Kısa açıklama (≤ 132) | "Capture full pages, scrolling areas and elements. Export PNG/JPG/PDF, annotate, keep a local history. Screenshots never leave your browser." |
-| Tek-amaç beyanı | "Capturing screenshots of web pages (full page, visible area, selection, element) and exporting/annotating/organizing them locally." |
+| Ad | `__MSG_appName__` — **"FullPageLab — Full Page Screenshot"** (≤ 45 karakter) |
+| Kısa açıklama (≤ 132) | "Capture full pages or the visible area, preview locally, then export PNG, JPG, WebP or PDF." |
+| Tek-amaç beyanı | "Capturing full-page and visible-area screenshots of web pages and exporting them locally in user-selected formats." |
 | Kategori | Productivity → Tools |
 | Diller | `en` (varsayılan), `tr`; listing metinleri `store/listing/{en,tr}.md` |
-| Ekran görüntüleri | 5 adet, **1280×800** (veya 640×400) PNG/JPEG; sırasıyla: (1) popup + full-page capture, (2) result/editör, (3) PDF seçenekleri, (4) history, (5) batch/compare. Tarayıcı çerçevesi dahil edilmez; gerçek UI, sahte veri yok |
+| Ekran görüntüleri | 5 adet, **1280×800** (veya 640×400) PNG/JPEG; sırasıyla: (1) popup'taki Full page/Visible area, (2) tam sayfa progress, (3) result önizleme, (4) format ve dosya adı seçenekleri, (5) onboarding gizlilik anlatımı. Tarayıcı çerçevesi dahil edilmez; gerçek UI, sahte veri yok |
 | Küçük promo | **440×280** |
 | Marquee promo | **1400×560** (opsiyonel, featured için) |
 | İkon | 128×128 PNG (store), manifestte 16/32/48/128 |
@@ -26,15 +28,14 @@
 
 **Açıklama şablonu (EN, `store/listing/en.md`):**
 ```
-FullPageLab captures the entire web page in one click — including long pages, sticky headers, scrolling panels (chat, dashboards, Gmail) and iframes — and saves it as PNG, JPG or PDF.
+FullPageLab captures long web pages or the current visible area and opens a local preview before saving anything.
 
-✔ Full page, visible area, selected area, element or CSS selector
-✔ Handles sticky headers/footers, lazy-loaded images and infinite scroll
-✔ PNG / JPG / WebP / PDF (single long page or A4/Letter, clickable links, optional searchable text)
-✔ Annotate: arrows, shapes, text, highlight, numbered markers, blur/pixelate and permanent redaction
-✔ Local screenshot history with search, tags, recapture and version compare
-✔ Batch capture a list of URLs or all open tabs, export as ZIP or one PDF
-✔ Keyboard shortcuts, right-click menu, delayed capture
+✔ Full-page and visible-area capture
+✔ Handles common sticky headers, lazy-loaded content and page scrollbars
+✔ Preview before download; no automatic save
+✔ Export PNG, JPG, WebP or PDF
+✔ Copy the result or print from the result page
+✔ Visible-area keyboard shortcut and full-page right-click action
 
 Privacy first: Screenshots never leave your browser unless you choose to upload them. No account required. No analytics unless you opt in.
 
@@ -47,13 +48,13 @@ Permissions explained: <link to /privacy#permissions>
 ## 2. İzin Gerekçe Metinleri (Developer Dashboard) (`REQ-REL-010`)
 Her izin için dashboard "Permission justification" alanına **birebir** girilecek paragraflar (08 §3.2 ile aynı kaynak `store/permissions.en.json`):
 
-- **activeTab** — "Used to capture and scroll the page the user is currently viewing, only in response to a user gesture (toolbar click, keyboard shortcut, context menu, side panel). Access is limited to that tab and ends on navigation."
+- **activeTab** — "Used to capture and scroll the page the user is currently viewing, only in response to a user gesture (toolbar click, keyboard shortcut or context menu). Access is limited to that tab and ends on navigation."
 - **scripting** — "Injects a small helper script into the active tab (activeTab) to measure the page, scroll it step by step, temporarily hide sticky headers and show a progress overlay. The script is removed and all changes are reverted after capture."
-- **storage** — "Stores user preferences, presets and in-progress capture state locally."
+- **storage** — "Stores user preferences, local result references and in-progress capture state locally."
 - **unlimitedStorage** — "Screenshots and PDFs are stored in the local screenshot history (IndexedDB/OPFS). Full-page images are large, so the default quota is insufficient. No data is synced or uploaded."
 - **downloads** — "Saves captured images and PDFs to the user's Downloads folder using the configured file name pattern and optional subfolder."
-- **offscreen** — "Image stitching, encoding, PDF generation and optional OCR run in an offscreen document with Web Workers so the service worker and the page stay responsive."
-- **contextMenus** — "Adds capture actions (full page, visible, selection, element, this frame, delayed) to the page context menu."
+- **offscreen** — "Image stitching, encoding and PDF generation run in an offscreen document so the service worker and the page stay responsive."
+- **contextMenus** — "Adds a full-page capture action to the page context menu."
 - **alarms** — "Runs storage housekeeping and, if the user creates a monitoring rule, schedules periodic recaptures of a URL for change detection."
 - **sidePanel** — "Provides a persistent capture panel and quick preview in Chrome's side panel."
 - **Optional: tabs** — "Requested only when the user uses 'Capture all tabs' or batch capture, to list tab titles/URLs and activate tabs one by one."
@@ -67,6 +68,8 @@ Her izin için dashboard "Permission justification" alanına **birebir** girilec
 - **Remote code** — "No. All JavaScript and WebAssembly (OCR engine and language data) are bundled in the package."
 
 `REQ-REL-011`: `scripts/check-manifest.ts` manifestteki izin kümesi ile `store/permissions.en.json` anahtarlarını karşılaştırır; fark CI hatasıdır.
+
+**0.1.0 yayın kapısı:** Mevcut manifestte gelecek kapsam için bulunan `sidePanel`, `alarms`, optional permissions ve `<all_urls>` optional host izni, Store paketi hazırlanırken çalışan bir kullanıcı akışıyla gerekçelendirilmiyorsa kaldırılmalıdır. Gelecekte kullanılacak bir özelliği anlatan gerekçe, kullanılmayan izni 0.1.0 paketinde tutmak için yeterli değildir.
 
 ---
 

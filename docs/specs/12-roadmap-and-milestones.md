@@ -1,6 +1,6 @@
 # 12 — Roadmap ve Milestone Kırılımı
 
-> Fazlı teslimat planı. Her milestone: hedef, epikler, iş paketleri (WP), bağımlılıklar, çıkış kriteri (Definition of Done). İmplementasyon ajanı bu dosyayı **task listesi** olarak kullanır; her WP ilgili spec bölümüne ve REQ/AC ID'lerine referans verir. Sıra önerilen sıradır; aynı milestone içindeki WP'ler paralel yapılabilir (bağımlılık belirtilmedikçe).
+> Fazlı teslimat planı. Her milestone: hedef, epikler, iş paketleri (WP), bağımlılıklar, çıkış kriteri (Definition of Done). Uygulama ajanı bu dosyayı **görev listesi** olarak kullanır; her WP ilgili spec bölümüne ve REQ/AC ID'lerine referans verir. Sıra önerilen sıradır; aynı milestone içindeki WP'ler paralel yapılabilir (bağımlılık belirtilmedikçe).
 
 Tahminler "ideal mühendis-gün" (IMG) cinsindendir ve yalnızca göreli büyüklük içindir.
 
@@ -11,8 +11,10 @@ Tahminler "ideal mühendis-gün" (IMG) cinsindendir ve yalnızca göreli büyük
 Gerçekleşen uygulamanın kanonik ayrıntılı raporu [`docs/progress.md`](../progress.md) dosyasındadır.
 
 - M0 altyapı temelleri uygulanmış ve otomatik doğrulamalardan geçmiştir.
-- M1 devam etmektedir; temel Visible area ve Full page akışları çalışır durumdadır.
-- M1'in tam çıkış kriteri henüz karşılanmamıştır. Selection, scroll container, sticky/fixed yönetimi, tam export/history ve E2E/smoke kapsamı açık işlerdir.
+- M1 devam etmektedir; Visible area ve Full page akışları, gerçek scroll onayına dayalı kırpma/yerleştirme, sticky/fixed hazırlığı, scrollbar gizleme/restore, progress overlay izolasyonu ve result önizleme/dışa aktarım dilimi çalışır durumdadır.
+- Deterministik Chromium E2E paketi; uzun sayfa, sticky katman, ana belge scrollbar'ı ve nested same-origin scrollbar senaryolarında geçmektedir.
+- M1'in tam çıkış kriteri henüz karşılanmamıştır. Selection, element, scroll container, all-tabs, büyük tile store/offscreen streaming, tam History UI, gelişmiş export ve Options açık işlerdir.
+- Tetikleyici kapsamı bilinçli olarak dardır: `Alt+Shift+V` yalnız visible capture içindir; tam sayfa sağ tık menüsünde yalnız `page` bağlamında bulunur; uygulanmayan kısayol ve menüler yayınlanmaz.
 - Bu bölümdeki WP tablosu planı gösterir; WP'lerin gerçekleşme durumu için ilerleme raporuna bakılmalıdır.
 
 ---
@@ -48,7 +50,7 @@ Gerçekleşen uygulamanın kanonik ayrıntılı raporu [`docs/progress.md`](../p
 ---
 
 ## M1 — MVP Capture (P0) (≈ 20 IMG)
-**Hedef:** Full page / visible / selection / scroll container capture; sticky handling; progress/cancel; kısayol; PNG/JPG/PDF(temel)/clipboard; history; local-only.
+**Hedef:** Full page / visible / selection / scroll container capture; sticky handling; progress/cancel; kısayol; PNG/JPG/PDF(temel)/clipboard; history; local-only. Bu hedefin şu an tamamlanan kullanıcıya açık kısmı Full page + Visible area + result/export akışıdır.
 
 | WP | İçerik | Spec / AC | Bağımlılık |
 |---|---|---|---|
@@ -65,14 +67,14 @@ Gerçekleşen uygulamanın kanonik ayrıntılı raporu [`docs/progress.md`](../p
 | M1-11 | Element picker overlay (hover highlight, ↑/↓, rozet) + selector üretici (unit test) | 03 §7.1–7.2 | M1-05 |
 | M1-12 | DPR/zoom normalize, gerçek ölçek doğrulama, RTL | 03 §14; AC-CAP-09 | M1-02 |
 | M1-13 | Progress overlay + countdown + badge + bildirim; delay/timer | 03 §13, §2 | M1-05 |
-| M1-14 | Kısayollar (`commands`), context menu ağacı, popup mod butonları | 03 §2, 10 | M1-01 |
+| M1-14 | Kısayollar (`commands`), context menu ağacı, popup mod butonları. **Kısmi:** Visible için `Alt+Shift+V`, full-page için page-context menüsü ve iki aktif popup düğmesi tamamlandı; diğerleri ilgili modlarla birlikte açılacak. | 03 §2, 10 | M1-01 |
 | M1-15 | `ExportPipeline`: PNG/JPEG encode (`encode.worker`), downloads (offscreen blob URL), filename template motoru (unit test), auto-download, clipboard strateji zinciri | 04; AC-EXP-* | M1-07 |
 | M1-16 | PDF temel: tek uzun sayfa + A4/Letter/Legal sayfalı, fit width, JPEG gömme, 14.400 pt bölme | 04 §5 | M1-15 |
 | M1-17 | Result sayfası: görüntüleyici (zoom, strip gezinme), export paneli, metadata paneli | 10 | M1-15 |
 | M1-18 | History: kayıt yazma (SW), `history.html` grid + arama/filtre temel, sil, yeniden indir, URL aç | 07 | M0-06 |
 | M1-19 | Options sayfası: General/Capture/Export/Filename/History/Privacy/About sekmeleri (Settings eşlemesi) | 10 | M0-07 |
-| M1-20 | Onboarding (kısayol, gizlilik cümlesi) | 10 | M0-07 |
-| M1-21 | Fixture siteleri (sticky, nested scroll, gmail-like, long 30k, zoom/DPR, grid pattern) + E2E dikiş doğrulama | 11 | M0-08 |
+| M1-20 | Onboarding (ürün tanıtımı, sabitleme ipucu, gizlilik cümlesi, örnek web sayfası) | 10 | M0-07 |
+| M1-21 | Fixture siteleri (sticky, nested scroll, uzun sayfa, scrollbar) + E2E dikiş doğrulama. **Kısmi:** dört temel Chromium senaryosu aktiftir; gmail-like ve zoom/DPR matrisi genişletilecek. | 11 | M0-08 |
 
 **Çıkış:** AC-CAP-01/02/04/05/08/09/10/11/13/14, AC-EXP temel, AC-HIS temel geçer; store varyantı yüklenip kullanılabilir (iç beta).
 
@@ -81,26 +83,26 @@ Gerçekleşen uygulamanın kanonik ayrıntılı raporu [`docs/progress.md`](../p
 ## M2 — V1 (P1) (≈ 22 IMG)
 **Hedef:** iframe, infinite scroll, lazy-load, editör, smart PDF, metadata, CSS selector, auto-download/klasör, smart hide (temel).
 
-| WP | İçerik | Spec / AC | Bağımlılık |
-|---|---|---|---|
-| M2-01 | Lazy-load pipeline (eagerize, pre-scroll, fonts/images/networkIdle/domQuiet bekleme) + `WaitConditions` motoru | 03 §8; AC-CAP-03 | M1-05 |
-| M2-02 | Infinite scroll modu (büyütme fazı, stop/limits, duplicate detection) | 03 §11; AC-CAP-07 | M2-01 |
-| M2-03 | iframe: allFrames enjeksiyon, `iframe-agent`, frame capture modu, cross-origin izin akışı (PermissionBroker) | 03 §9; AC-CAP-12 | M1-10 |
-| M2-04 | CSS selector capture (popup/batch formu, test butonu, index) | 03 §7.4 | M1-11 |
-| M2-05 | `PermissionBroker` + Options → İzinler sekmesi | 02 §7.2, 08 | — |
-| M2-06 | Smart PDF: smart page breaks (TextRect + ink analizi), margin/scale/orientation/auto, header/footer token'ları, watermark, Info/XMP metadata | 04 §5 | M1-16 |
-| M2-07 | Clickable links PDF (`agent.collectLinks` → link annots) | 04 §5.5 | M2-06 |
-| M2-08 | Embedded metadata (PNG iTXt, JPEG XMP), URL/timestamp overlay seçeneği (görüntüye basılı bant) | 04 §7 | M1-15 |
-| M2-09 | Özel download alt klasörü + template, conflictAction, saveAs | 04 | M1-15 |
-| M2-10 | Editör çekirdeği (Fabric v6): document model, seçim/taşıma/boyut, undo/redo, zoom/pan, autosave | 05 | M1-17 |
-| M2-11 | Editör araçları: arrow/rect/ellipse/line/pen/text/highlight/marker/emoji, stil paneli, katmanlar, kısayollar | 05 | M2-10 |
-| M2-12 | Gizlilik araçları: blur/pixelate (canlı), **redaction commit** (yıkıcı), uyarı metinleri | 05 §5.2, 08 §8 | M2-10 |
-| M2-13 | Crop/resize/rotate + editörden export + "yeni kayıt / üzerine yaz" | 05 | M2-10 |
-| M2-14 | Smart element hide: `hide-rules.json` (CC-BY subset + kendi listeler), heuristics, kategori ayarları, custom selectors | 09 §3 | M1-05 |
-| M2-15 | Side panel | 10 | M1-17 |
-| M2-16 | History gelişmiş: tag/folder/star/not, bulk işlemler, kota yönetimi, yedek export/import, editörde yeniden aç | 07 §11–13 | M1-18 |
-| M2-17 | `DebuggerBackend` (cdp varyantı): captureScreenshot dilimleme, printToPDF searchable, infobar UX | 03 §15 | M1-02 |
-| M2-18 | Fixture'lar: lazy IO/data-src, infinite, iframes, cookie/chat widget, modal, fonts, transform-fixed; E2E | 11 | — |
+| WP | İçerik | Spec / AC | Bağımlılık | Durum |
+|---|---|---|---|---|
+| M2-01 | Lazy-load pipeline (eagerize, pre-scroll, fonts/images/networkIdle/domQuiet bekleme) + `WaitConditions` motoru | 03 §8; AC-CAP-03 | M1-05 | — |
+| M2-02 | Infinite scroll modu (büyütme fazı, stop/limits, duplicate detection) | 03 §11; AC-CAP-07 | M2-01 | — |
+| M2-03 | iframe: allFrames enjeksiyon, `iframe-agent`, frame capture modu, cross-origin izin akışı (PermissionBroker) | 03 §9; AC-CAP-12 | M1-10 | — |
+| M2-04 | CSS selector capture (popup/batch formu, test butonu, index) | 03 §7.4 | M1-11 | — |
+| M2-05 | `PermissionBroker` + Options → İzinler sekmesi | 02 §7.2, 08 | — | — |
+| M2-06 | Smart PDF: smart page breaks (TextRect + ink analizi), margin/scale/orientation/auto, header/footer token'ları, watermark, Info/XMP metadata | 04 §5 | M1-16 | — |
+| M2-07 | Clickable links PDF (`agent.collectLinks` → link annots) | 04 §5.5 | M2-06 | — |
+| M2-08 | Embedded metadata (PNG iTXt, JPEG XMP), URL/timestamp overlay seçeneği (görüntüye basılı bant) | 04 §7 | M1-15 | — |
+| M2-09 | Özel download alt klasörü + template, conflictAction, saveAs | 04 | M1-15 | — |
+| M2-10 | Editör çekirdeği (Fabric v6): document model, seçim/taşıma/boyut, undo/redo, zoom/pan, autosave | 05 | M1-17 | **Kısmi (2026-09-09):** çekirdek, seçim/taşıma/boyut, undo/redo ve zoom uygulandı. Autosave ve pan yok. |
+| M2-11 | Editör araçları: arrow/rect/ellipse/line/pen/text/highlight/marker/emoji, stil paneli, katmanlar, kısayollar | 05 | M2-10 | **Kısmi (2026-09-09):** arrow/rect/ellipse/line/pen/text/highlight uygulandı; renk + kalınlık paneli var. marker/emoji, katman paneli ve Delete dışındaki kısayollar yok. |
+| M2-12 | Gizlilik araçları: blur/pixelate (canlı), **redaction commit** (yıkıcı), uyarı metinleri | 05 §5.2, 08 §8 | M2-10 | **Kısmi (2026-09-09):** blur/pixelate/redact ve uyarı metinleri uygulandı. Redaction hâlâ katman olarak durur; yıkıcı commit yok. |
+| M2-13 | Crop/resize/rotate + editörden export + "yeni kayıt / üzerine yaz" | 05 | M2-10 | **Kısmi (2026-09-09):** kaydetme (yeni kayıt / üzerine yaz) uygulandı. Crop/resize/rotate UI yok. |
+| M2-14 | Smart element hide: `hide-rules.json` (CC-BY subset + kendi listeler), heuristics, kategori ayarları, custom selectors | 09 §3 | M1-05 | — |
+| M2-15 | Side panel | 10 | M1-17 | — |
+| M2-16 | History gelişmiş: tag/folder/star/not, bulk işlemler, kota yönetimi, yedek export/import, editörde yeniden aç | 07 §11–13 | M1-18 | — |
+| M2-17 | `DebuggerBackend` (cdp varyantı): captureScreenshot dilimleme, printToPDF searchable, infobar UX | 03 §15 | M1-02 | — |
+| M2-18 | Fixture'lar: lazy IO/data-src, infinite, iframes, cookie/chat widget, modal, fonts, transform-fixed; E2E | 11 | — | — |
 
 **Çıkış:** AC-CAP-03/07/12, AC-EDT-*, AC-EXP PDF gelişmiş, AC-HIS gelişmiş geçer; Web Store ilk yayın adayı (store varyantı).
 

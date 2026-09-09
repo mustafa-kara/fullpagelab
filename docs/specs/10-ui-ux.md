@@ -2,12 +2,14 @@
 
 > Uzantının tüm kullanıcı arayüzleri: popup, side panel, result/editor sayfası, history, compare, batch, options, onboarding, sayfa-içi overlay'ler, bildirimler, i18n, erişilebilirlik, tema ve bileşen kiti. Ayar alanları `13-data-contracts.md §6`, sayfa listesi `02-architecture.md §2.4`, editör `05-editor.md`. Gereksinim ID önek: `REQ-UI-*`.
 
+> **Uygulama durumu (2026-09-09):** Kullanıcıya sunulan yakalama düğmeleri yalnız **Full page** ve **Visible area**dır. Selection, Element, Scrolling area ve All tabs düğmeleri çalışır hâle gelene kadar gizlidir. Tam sayfa için varsayılan klavye kısayolu yoktur; görünen alan `Alt+Shift+V`, sağ tık menüsü ise yalnız sayfa bağlamındaki **Tam sayfayı yakala** eylemini sunar. Result önizleme/format/indirme/kopyalama akışı aktiftir. **Editör uygulandı** (§4.1); gelişmiş History, side panel, compare, batch ve Options yüzeyleri hâlâ hedef tasarımdır.
+
 İçindekiler: 1 İlkeler · 2 Popup · 3 Side panel · 4 Result sayfası · 5 History · 6 Compare · 7 Batch · 8 Options · 9 Onboarding · 10 Context menu · 11 Sayfa-içi overlay'ler · 12 Bildirimler & toast · 13 Boş/hata durumları · 14 i18n · 15 Erişilebilirlik · 16 Tema & tasarım token'ları · 17 Bileşen kiti · 18 Responsive & performans · 19 Metin/ton kılavuzu · 20 Kabul kriterleri
 
 ---
 
 ## 1. İlkeler
-1. **Tek tık hedefi:** En sık işlem (full-page capture) popup'ta ilk odaklı buton ve kısayol.
+1. **Tek tık hedefi:** En sık işlem olan full-page capture popup'ta ilk odaklı butondur; ayrıca sağ tık menüsünden başlatılabilir.
 2. **Sayfadan ayrılmadan:** Progress ve hatalar sayfa-içi overlay + action badge'de; popup kapansa da iş sürer.
 3. **Sessiz ama şeffaf:** Gizlilik cümlesi görünür yerlerde; izin istekleri bağlamında ve gerekçeli.
 4. **Tutarlı dil:** Aynı kavram her yerde aynı kelime (Full page / Visible area / Selection / Element / Scrolling area / All tabs).
@@ -17,43 +19,29 @@
 
 ## 2. Popup (`popup.html`) (`REQ-UI-010`…`019`)
 
-Boyut: 360 px genişlik, içerik yüksekliğine göre 420–600 px (Chrome max ~600). İlk boya < 150 ms: yalnızca `settings.get` + `history.list{limit:3}` + `capture.listActive`; ikon sprite inline SVG; Fabric/pdf-lib vb. **asla** import edilmez.
+Boyut: yaklaşık 320 px genişlik, içerik yüksekliğine göre kompakt. İlk boya < 150 ms: yalnızca ayarlar ve `capture.listActive` okunur; ağır result/export bağımlılıkları popup'a import edilmez.
 
 ```
-┌──────────────────────────────────────────────────┐
-│ ▣ Capture            [Preset: Default ▾]  ⚙  ▤   │  ← başlık: logo, preset select, Options, History
-├──────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌──────────────┐ ┌────────────┐ │
-│ │ ⤓ Full page  │ │ ▭ Visible    │ │ ⌗ Selection│ │  ← büyük mod butonları (ikon+etiket+kısayol)
-│ │  Alt+Shift+P │ │  Alt+Shift+V │ │ Alt+Shift+S│ │
-│ └──────────────┘ └──────────────┘ └────────────┘ │
-│ ┌──────────────┐ ┌──────────────┐ ┌────────────┐ │
-│ │ ◩ Element    │ │ ⇅ Scrolling  │ │ ⧉ All tabs │ │
-│ │              │ │   area       │ │   (izin)   │ │
-│ └──────────────┘ └──────────────┘ └────────────┘ │
-│ ⏱ Delay: [0s ▾]   ∞ Infinite scroll [ ]          │  ← satır: delay select (0/3/5/10/custom), infinite toggle
-│ Output: ● PNG ○ JPEG ○ PDF   after: [Open ▾]     │  ← hızlı çıktı (ExportPlan.format / general.afterCapture)
-├──────────────────────────────────────────────────┤
-│ Recent                                   View all│
-│ [thumb] example.com · Full page · 2 min ago   ⋯  │
-│ [thumb] docs.site · Element · 1 h ago         ⋯  │
-│ [thumb] app.io · Visible · yesterday          ⋯  │
-├──────────────────────────────────────────────────┤
-│ 🔒 Screenshots never leave your browser unless   │
-│    you choose to upload them.        Batch ▸     │
-└──────────────────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│ FullPageLab                  Capture │
+├──────────────────────────────────────┤
+│ Durum / hata / aktif iş bilgisi      │
+│ ┌──────────────┐ ┌────────────────┐  │
+│ │ Full page    │ │ Visible area   │  │
+│ └──────────────┘ └────────────────┘  │
+│                                      │
+│ Ekran görüntüleri siz yüklemeyi      │
+│ seçmedikçe tarayıcınızdan çıkmaz.    │
+└──────────────────────────────────────┘
 ```
-- **Mod butonları:** `button` grid 3×2; `aria-keyshortcuts`; tıklayınca popup `capture.start` gönderir ve `window.close()`. Element/Scrolling area → `capture.pickElement` (picker sayfada açılır). All tabs → izin yoksa inline izin kartı: *"Tüm sekmeleri yakalamak için sekme başlıklarını okuma izni gerekir. [İzin ver]"* (`permissions.request{feature:'allTabs'}` kullanıcı jesti içinde).
-- **Preset select:** `Preset[]`; seçim `CaptureRequest.presetId`; "Manage presets…" son öğe.
-- **Delay:** `CaptureOptions.delayMs`; custom → sayı girişi (1–60 s).
-- **Hızlı çıktı:** format segmented; "after" select (`Open result` / `Download only` / `Copy to clipboard` / `Side panel`).
+- **Aktif mod butonları:** Full page ve Visible area. Her tıklama eksiksiz bir `CaptureRequest` üretir; başarılı başlangıçtan sonra popup kapanır ve yakalama service worker'da sürer.
+- **Gelecek modlar:** Selection, Element, Scrolling area ve All tabs arayüzde görünmez; pasif/bozuk düğme olarak tutulmaz.
+- **Dışa aktarım:** Format ve dosya adı seçimleri yakalama sonrasında result sayfasında yapılır; popup otomatik indirme başlatmaz.
 - **Durumlar:**
   - *Restricted sayfa* (`isRestricted`): mod butonlarından yalnızca Visible etkin; üstte bilgi şeridi *"Bu sayfa korumalı; yalnızca görünen alan alınabilir."*
   - *Capturing* (aktif job varsa): üst kart `ProgressBar` + "Capturing 12/40 · 35%" + `Cancel`; mod butonları disabled.
   - *Error*: kırmızı kart (`ErrorInfo.userMessageKey`) + `Retry` + "Copy details".
-  - *İlk kullanım*: onboarding tamamlanmamışsa üstte "Take the 30-sec tour" bandı.
-- **Recent:** son 3 `CaptureRecord` (thumbnail 48×36, domain, mode, relative time, ⋯ menü: Open, Copy, Download, Recapture, Delete). Boşsa "No captures yet".
-- Alt bar: gizlilik cümlesi, **Batch ▸** (batch.html), sürüm (tooltip).
+- Alt bölümde yerel gizlilik cümlesi kalıcıdır.
 
 ---
 
@@ -102,6 +90,25 @@ Boyut: 360 px genişlik, içerik yüksekliğine göre 420–600 px (Chrome max ~
 - `general.resultTabBehavior:'reuseTab'` → mevcut result sekmesi güncellenir.
 
 ---
+
+### 4.1 Editör paneli (uygulandı, 2026-09-09)
+
+**Düzenle** düğmesi viewer'ı editör paneliyle değiştirir; panel aynı ızgara hücresini kullanır, export paneli yerinde kalır. Ayrıntılı davranış `05-editor.md`.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ↖ ↗ ▭ ◯ ╱ ✎ T ▤ ◌ ▓ ■ │ ●●●●●● ▬▬▬▬ │ ↶ ↷ │ − 68% + ⛶ 1:1     [Vazgeç][Kaydet] │ ← tek satır
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Bulanıklaştırma geri alınabilir. Hassas veriler için Karart aracını kullanın. │ ← yalnız uyaran araçlarda
+├──────────────────────────────────────────────────────────────────────────────┤
+│                        [ editör tuvali, kaydırılabilir ]                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Tek satır zorunluluğu.** Araç adları yazıyla verildiğinde çubuk üç satıra çıkıp yakalamayı sayfanın altına itiyordu; araçlar `title` + `aria-label` taşıyan ikonlara çevrildi (123 px → 47 px). Erişilebilir ad çeviriden gelmeye devam eder.
+- **Daraltma sırası.** Pencere daraldıkça sırasıyla ayraçlar, sabit zoom düğmeleri ve swatch boyutları küçülür (`1400px`, `1200px`, `1050px`). Editör açıkken `result-layout` 1250 px altında tek sütuna düşer; viewer'ın kendi 900 px kırılma noktası çubuğu 632 px'lik bir sütuna sıkıştırıp üç satıra döndürüyordu.
+- **Gizlilik notu** kalıcı bir satır değildir: yalnız blur/pixelate/redact seçiliyken ve vurgulu (sarı) biçimde görünür. Diğer araçlarda "orijinal korunuyor" bilgisi sessiz stildedir.
+- **Stil kontrolleri** (renk + kalınlık) blur/pixelate/redact seçiliyken devre dışıdır; bu araçların görünümü gizlilik garantisinin kendisidir (`REQ-EDT-050`).
 
 ## 5. History (`history.html`) (`REQ-UI-050`…`064`)
 
@@ -162,7 +169,7 @@ Sol dikey sekmeler; her sekme `Settings` alt ağacına eşlenir; değişiklikler
 │ Filename   │ After capture   [Open result tab ▾]                            │
 │ Editor     │ Notifications   [x] show   [ ] sound                           │
 │ History    │ Result tab      ● New tab ○ Reuse tab                          │
-│ Presets    │ Shortcuts       Full page Alt+Shift+P … [Change in Chrome ↗]   │
+│ Presets    │ Shortcuts       Visible area Alt+Shift+V [Change in Chrome ↗]   │
 │ Integr.    │                                                                │
 │ Permissions│                                                                │
 │ Privacy    │                                                                │
@@ -214,15 +221,15 @@ Sol dikey sekmeler; her sekme `Settings` alt ağacına eşlenir; değişiklikler
 
 ## 9. Onboarding (`onboarding.html`) (`REQ-UI-130`…`133`)
 Kurulumda (`runtime.onInstalled reason:'install'`) açılır; 3 adım, atlanabilir:
-1. **Hoş geldin & kısayol:** mod özeti, Alt+Shift+P rozetleri, "Pin the extension" ipucu (animasyonlu ok).
+1. **Hoş geldin:** ürün özeti ve Chrome araç çubuğunda uzantıyı sabitleme ipucu. Tam sayfa için var olmayan bir kısayol kartı gösterilmez.
 2. **Gizlilik:** büyük metin: *Screenshots never leave your browser unless you choose to upload them.* + izin açıklaması (activeTab nedir) + `navigator.storage.persist()` isteği butonu.
-3. **Dene:** "Capture this page" butonu (onboarding sayfasının kendisini çeker) → result sayfası. `general.onboardingDone=true`.
+3. **Dene:** CTA, `onboarding.openDemo` ile normal HTTP(S) örnek sayfasını yeni sekmede açar. Kullanıcı popup'taki Full page düğmesiyle veya sayfada sağ tıklayıp **Tam sayfayı yakala** eylemiyle ilk sonucu oluşturur. `general.onboardingDone=true` kaydedilir.
 
 Uygulanan tasarım, kurulum sekmesini tam sayfa ve responsive bir tanıtım akışına dönüştürür. Sol rayda marka mesajı ve 3 adımlı ilerleme, sağ içerik alanında karşılama önizlemesi, gizlilik kartları ve ilk yakalama aksiyonu bulunur. Her adımda tek bir birincil CTA vardır; "Turu atla" da `general.onboardingDone=true` yazar ve tamamlanma ekranını gösterir.
 
-- Karşılama adımı: tam sayfa/akıllı/yerel özellik kartları, `Alt+Shift+P` kısayolu ve Chrome yapboz menüsünden sabitleme ipucu.
+- Karşılama adımı: tam sayfa/akıllı/yerel özellik kartları ve Chrome yapboz menüsünden sabitleme ipucu; klavye kısayolu kartı yoktur.
 - Gizlilik adımı: `privacy_tagline` metni, yerel işleme ve kullanıcı tetiklemeli izin açıklaması, `navigator.storage.persist()` butonu ve varsayılanı kapalı `privacy.telemetry` anahtarı.
-- Dene adımı: `settings.set` ile tamamlanmayı kaydeder, ardından `capture.start({ mode: 'fullPage' })` ile onboarding sayfasını yakalar; işlem sürerken düğme kilitlenir ve result sekmesi açılacağı bildirilir.
+- Dene adımı: `settings.set` ile tamamlanmayı kaydeder, ardından `onboarding.openDemo` ile yakalanabilir örnek sayfayı açar; Chrome tarafından korunan onboarding uzantı sayfasında capture başlatmaz.
 - Responsive ve erişilebilirlik: 920 px altında ray yatay adıma döner, 620 px altında içerik tek kolona iner; klavye focus ring'leri, `aria-live`, anlamlı etiketler, minimum 44 px hedefler ve `prefers-reduced-motion` desteği vardır.
 - Metinler `public/_locales/en/messages.json` ve `public/_locales/tr/messages.json` içindeki `onboarding_*` anahtarlarından gelir; onboarding sayfası ayar diline göre `lang` niteliğini günceller.
 
@@ -230,19 +237,10 @@ Uygulanan tasarım, kurulum sekmesini tam sayfa ve responsive bir tanıtım akı
 
 ## 10. Context Menu (`REQ-UI-140`)
 ```
-[ikon] Screenshot
- ├─ Capture full page            (page, action)
- ├─ Capture visible area         (page, action)
- ├─ Capture selection            (page)
- ├─ Capture element…             (page)
- ├─ Capture this frame           (frame)
- ├─ Capture this image           (image)
- ├─ Delayed capture ▸ 3 s / 5 s / 10 s
- ├─ ───
- ├─ Open history
- └─ Batch capture…
+ [ikon] FullPageLab
+  └─ Tam sayfayı yakala           (page)
 ```
-Restricted sayfalarda `enabled:false` (visible hariç).
+Menü yalnız `contexts:['page']` için oluşturulur. Diğer capture modları uygulanmadan menüye eklenmez. Restricted sayfalarda tıklama anlaşılır bir hata üretir; visible fallback'i popup üzerinden sunulur.
 
 ---
 
@@ -349,7 +347,7 @@ Her bileşen: props tipli, CSS module, dark/light, klavye, Storybook yerine `pag
 | ID | Kriter |
 |---|---|
 | AC-UI-01 | Popup ilk boya < 150 ms (Lighthouse/perf trace), bundle < 60 KB gz; Fabric/pdf-lib popup'ta yüklenmiyor |
-| AC-UI-02 | Popup'taki 6 mod butonu ilgili `CaptureRequest`'i üretir; restricted sayfada yalnızca Visible etkin ve şerit görünür |
+| AC-UI-02 | Popup yalnız çalışan Full page ve Visible area modlarını gösterir; her ikisi eksiksiz `CaptureRequest` üretir; restricted sayfada yalnızca Visible etkin ve bilgi şeridi görünür |
 | AC-UI-03 | Capture sırasında popup yeniden açılınca progress ve Cancel görünür; iptal 300 ms içinde overlay'i kaldırır |
 | AC-UI-04 | Result sayfası: export paneli tüm `ExportPlan` alanlarını sunar; PDF accordion tüm `PdfOptions` alanlarını içerir; strip'li sonuçta navigasyon çalışır |
 | AC-UI-05 | History: 5.000 kayıtla akıcı scroll; arama/filtre/sort `HistoryQuery` ile eşleşir; bulk bar işlemleri çalışır; storage meter doğru |

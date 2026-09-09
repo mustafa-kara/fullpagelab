@@ -14,15 +14,17 @@ kaybetmeden tek bir birincil eylemle tamamlanır.
 ## Kullanıcı akışı
 
 1. **Hoş geldin:** FullPageLab markası, tam sayfa/akıllı/yerel işleme özellik
-   kartları, `Alt+Shift+P` kısayolu ve Chrome araç çubuğundan sabitleme ipucu.
+   kartları ve Chrome araç çubuğundan sabitleme ipucu. Tam sayfa için varsayılan
+   klavye kısayolu olmadığı için kısayol kartı gösterilmez.
 2. **Gizlilik:** Ekran görüntülerinin kullanıcı açıkça yüklemeyi seçmedikçe
    tarayıcıdan çıkmadığını belirten ana mesaj, `activeTab` izninin açıklaması,
    kalıcı depolama isteği ve varsayılan olarak kapalı tanılama seçeneği.
 3. **Dene:** Kurulum sekmesinin Chrome uzantı sayfası olduğu açıkça belirtilir.
    Tek CTA, `onboarding.openDemo` ile yakalanabilir bir örnek web sayfasını yeni
-   sekmede açar. Kullanıcı bu sekmede FullPageLab simgesini kullanarak ilk gerçek
-   yakalamasını başlatır. Kullanıcı isterse turu atlayıp aynı tamamlanma ekranına
-   ulaşır.
+   sekmede açar. Kullanıcı bu sekmede FullPageLab simgesindeki **Full page**
+   düğmesini veya sayfanın **Tam sayfayı yakala** sağ tık eylemini kullanarak ilk
+   gerçek yakalamasını başlatır. Kullanıcı isterse turu atlayıp aynı tamamlanma
+   ekranına ulaşır.
 
 ## Görsel sistem
 
@@ -33,8 +35,8 @@ kaybetmeden tek bir birincil eylemle tamamlanır.
 - Dekoratif gradient, sahte tarayıcı mockup'ı, parlayan tarama animasyonu ve
   tekrarlanan CTA kullanılmaz; her adımda tek bir birincil eylem bulunur.
 - Emoji yerine kapalı bir ikon sözlüğüyle çizilmiş inline SVG ikonlar.
-- Yakalama akışı satırları, kısayol kartı ve sabitleme ipucu gerçek kullanım
-  sırasını doğrudan anlatır.
+- Yakalama akışı satırları ve sabitleme ipucu gerçek kullanım sırasını doğrudan
+  anlatır; uygulanmamış bir kısayol önerilmez.
 
 ## Etkileşim ve durumlar
 

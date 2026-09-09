@@ -2,7 +2,64 @@
 
 > Test piramidi, fixture site matrisi, dikiş doğrulama yöntemi, performans/bellek/rate-limit testleri, PDF/editor/batch/diff/OCR/i18n/a11y testleri, CI matrisi, kapsam hedefleri, manuel QA listesi, hata şiddeti tanımları ve REQ → AC → test izlenebilirlik matrisi. Gereksinim ID önek: `REQ-QA-*`.
 
-İçindekiler: 1 Strateji ve piramit · 2 Araçlar ve klasör yapısı · 3 Unit · 4 Integration · 5 E2E altyapısı · 6 Fixture site matrisi · 7 Dikiş doğrulama · 8 Performans ve bellek · 9 Rate limit / cancel / restore · 10 Storage & migration · 11 PDF doğrulama · 12 Editör · 13 Batch · 14 Diff · 15 OCR · 16 i18n · 17 Erişilebilirlik · 18 Cross-browser · 19 CI matrisi ve kapsam · 20 Flaky politikası · 21 Hata şiddeti · 22 Manuel QA listesi · 23 İzlenebilirlik matrisi · 24 Kabul kriterleri
+İçindekiler: 0 Reponun güncel gerçek durumu · 1 Strateji ve piramit · 2 Araçlar ve klasör yapısı · 3 Unit · 4 Integration · 5 E2E altyapısı · 6 Fixture site matrisi · 7 Dikiş doğrulama · 8 Performans ve bellek · 9 Rate limit / cancel / restore · 10 Storage & migration · 11 PDF doğrulama · 12 Editör · 13 Batch · 14 Diff · 15 OCR · 16 i18n · 17 Erişilebilirlik · 18 Cross-browser · 19 CI matrisi ve kapsam · 20 Flaky politikası · 21 Hata şiddeti · 22 Manuel QA listesi · 23 İzlenebilirlik matrisi · 24 Kabul kriterleri
+
+---
+
+## 0. Reponun Güncel Gerçek Durumu (2026-09-09)
+
+Bu bölüm bu dosyanın geri kalanından farklıdır: aşağısı hedeftir, burası ölçülmüş olandır. Hedef spec içinde bulunması bir testin yazıldığı anlamına gelmez.
+
+### 0.1 Gerçek test sayıları
+
+| Katman | Dosya | Test | Nasıl koşturulur |
+|---|---|---|---|
+| Unit | 33 | 200 | `npx vitest run` |
+| Integration | 2 | 11 | aynı Vitest koşusuna dâhildir |
+| **Vitest toplamı** | **35** | **211** | tamamı geçer, ~5 s |
+| E2E | 3 | 42 | `npx playwright test` |
+
+E2E dosya dağılımı: `test/e2e/editor.spec.ts` 34, `test/e2e/capture-robustness.spec.ts` 4, `test/e2e/capture-stability.spec.ts` 4.
+
+Klasör yapısı §2'de tarif edilenden sapar: E2E testleri `test/e2e/specs/` altında `*.e2e.ts` değil, doğrudan `test/e2e/` altında `*.spec.ts` olarak durur; Playwright fixture'ı `test/e2e/fixtures/extension.ts` yerine `test/e2e/extension.ts`, ortak yardımcılar ise `test/e2e/capture-helpers.ts` içindedir. §6'daki 39 fixture'lık matris ve `test/fixtures/sites/` düzeni henüz kurulmamıştır; mevcut fixture'lar `test/fixtures/pages/` altındaki 13 HTML sayfasıdır (`long`, `very-long`, `sticky`, `nested-scroll`, `iframe`, `frame-child`, `dpr-zoom`, `dynamic-height`, `shrinking`, `spa-scroller`, `overlay-scroll-lock`, `decoy-panel`, `index`).
+
+### 0.2 Editörün E2E kapsamı
+
+`test/e2e/editor.spec.ts` içindeki 34 senaryonun garanti ettiği davranışlar:
+
+- **Taban görüntü gerçekten görünür.** Capture, `long.html` ve `very-long.html` fixture'ları üzerinde hem `deviceScaleFactor` 1 hem de 2'de sahnede görünür; ayrıca history dışında (session store'da) tutulan bir capture da yüklenir.
+- **Her araç piksel üretir.** select dışındaki on aracın (arrow, rect, ellipse, line, freehand, text, highlight, blur, pixelate, redact) her biri için sahnede görünür bir değişiklik oluştuğu ayrı ayrı doğrulanır.
+- **Araçlar iddia ettikleri şeyi yapar.** Freehand pointer'ı izler, dikdörtgene kapanmaz; ok, ucunda gövdesinden birkaç kat kalın bir bölge oluşturur; text'e yazılan metin canvas'a ulaşır; blur ve pixelate altlarındaki içeriği gerçekten gizler.
+- **Gizlilik.** Bir blur bölgesi taşındığında yeni konumundan yeniden kesilir — üzerinde oluşturulduğu pikselleri beraberinde taşımaz. Blur'un geri döndürülebilir, redaction'ın kalıcı olduğunu söyleyen uyarılar gösterilir ve metinleri gönderilen locale dosyalarından doğrulanır.
+- **Etkileşim sözleşmesi.** Bir çizim aracı etkinken mevcut annotation üzerine çizilebilir; annotation'lar yalnız select aracıyla sürüklenebilir; select ile taşımak yanlışlıkla yeni bir şekil çizmez; şekil sürükleme sırasında görünür.
+- **Doküman durumu.** Taşıma yalnız canvas'ı değil dokümanı da günceller; yazılan metin kaydedilen dokümana geçer; boş bırakılan bir text kutusu geride bırakılmaz; seçili bir annotation `Delete`/`Backspace` ile silinir.
+- **Görüntüleme ve kayıt.** Capture sahneye sığdırılmış olarak açılır ve zoom kontrolleri çalışır; tam sayfa capture çizim yapılabilecek büyüklükte açılır; kayıt annotation'ları korur ve görüntüleyici düzenlenmiş sürümü gösterir; annotation'lı capture yeni bir kayıt olarak saklanır.
+- **Araç çubuğu.** Tek satıra sığar ve capture'a yer bırakır. Renk ve kalınlık kontrolleri çizileni değiştirir.
+
+Kapsanmayanlar: klavye kısayolları (`Delete`/`Backspace` dışında), katman sırası, pano, kırpma/döndürme, büyük görüntüde açılış süresi ve pan akıcılığı bütçeleri (§12'nin geri kalanı).
+
+### 0.3 Ders: canvas buffer'ına bakan iddialar yeterli değildir
+
+Editör her capture'da ve her çözünürlükte boş beyaz bir sahne gösteriyordu; Fabric'in üstteki etkileşim canvas'ı alttaki çizim canvas'ının üzerine opak beyaz boyanmıştı. O sıradaki testler alttaki canvas üzerinde `getImageData` ile iddiada bulunuyordu; bu, **çizim buffer'ını** ölçer. Buffer sonuna kadar boyalı kaldığı hâlde ekrana hiçbir şey ulaşmıyordu, dolayısıyla iddialar bomboş bir pencereye karşı geçti ve hata iki kez sürüme girdi.
+
+Kural: **görsel olan hiçbir şey canvas buffer'ından doğrulanmaz.** Kullanıcının ne gördüğünün tek kanıtı kompozit edilmiş ekran görüntüsüdür. `test/e2e/capture-helpers.ts` bunun için iki yardımcı sunar:
+
+- `stageColorShares(page)` — `.editor-stage`'in ekran görüntüsünü çözer ve `{ distinct, shares }` döndürür: kaç ayrı renk bulunduğu ve her rengin oranı. Boş bir sahne ezici çoğunlukla beyazdır; capture gösteren bir sahne çok renklidir.
+- `stageChangeShare(page, before, after)` — iki sahne ekran görüntüsü arasında değişen piksellerin oranı. "Bu araç görünür bir şey çizdi mi?" sorusunun cevabı budur.
+
+Aynı ders §12'yi de bağlar: oradaki "export PNG'de beklenen piksel" iddiaları da ekran ya da gerçekten dışa aktarılmış dosya üzerinden alınmalıdır, yaşayan canvas'ın buffer'ından değil.
+
+### 0.4 Ders: tek bir DPR yeterli değildir
+
+Testler yalnız `deviceScaleFactor` 1'de koşuyordu ve yalnız 2'de ortaya çıkan hataları kaçırdı: Fabric backing store'unu device pixel ratio ile çarptığı için ratio 1'de sığan bir capture ratio 2'de canvas sınırlarını aşıyor ve tahsis sessizce başarısız oluyordu. Çoğu dizüstü bilgisayarın raporladığı değer 2'dir, yani hata gerçek kullanıcıların çoğunu etkiliyordu.
+
+`test/e2e/extension.ts` içindeki `launchExtension(testInfo, { deviceScaleFactor })` artık bunu destekler. Canvas boyutlandırma, tahsis sınırları ya da render çözünürlüğüne dokunan her test en az 1 ve 2 ölçek faktöründe koşturulmalıdır. Aynı şekilde tek bir 60x60 köşe örneklemesi yerine yüzeyin tamamına yayılan bir ızgara örneklenmelidir: boyalı bir kenarı olup gerisi boş olan bir canvas köşe örneklemesini geçer.
+
+### 0.5 Bilinen kaynak baskısı kararsızlığı
+
+E2E paketi baştan sona tek seferde koşturulduğunda her seferinde **rastgele bir test** başarısız olur. Her test kendi Chrome örneğini başlattığı için bu bir kaynak baskısı sorunudur; başarısız olan testler tek başlarına ve küçük gruplar hâlinde saniyeler içinde geçer. Sorun editör çalışmasından öncesine dayanır ve giderilmemiştir; §20'deki karantina politikası bunu kapsamaz, çünkü kararsız olan belirli bir test değil, koşunun kendisidir.
+
+Geçici çözüm: doğrulama yaparken spec dosyalarını ya da test gruplarını ayrı ayrı çalıştırın (ör. `npx playwright test test/e2e/editor.spec.ts`). Gerçek çözüm, tarayıcı örneğinin testler arasında yeniden kullanılmasıdır ve henüz yapılmamıştır.
 
 ---
 

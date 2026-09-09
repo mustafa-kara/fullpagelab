@@ -2,6 +2,8 @@
 
 > Bu dosya uzantının **tek doğruluk kaynağı** tip tanımlarıdır. Tüm bileşenler (SW, CS, offscreen, UI) bu tipleri `src/shared/types/*` altından import eder. Runtime doğrulama için her tipin bir `zod` şeması (`*Schema`) bulunur; mesaj alıcıları payload'ı parse eder. Tipler `readonly` ve JSON-serializable'dır (Blob/ArrayBuffer taşıyanlar açıkça işaretlenmiştir ve sadece aynı context içinde dolaşır; context'ler arası referans (`BlobRef`) kullanılır).
 
+> **Uygulama durumu (2026-08-21):** `CaptureMode` gelecekteki modları da kapsayan ileriye dönük bir union'dır. Runtime şu anda yalnız `fullPage` ve `visible` isteklerini yürütür; diğer modlar desteklenmeyen istek olarak reddedilir ve arayüzde gösterilmez. `capture.start` payload'ı tek bir mod adı değil, hedef sekme/pencere bilgisi dâhil eksiksiz `CaptureRequest` nesnesidir.
+
 Dosya içindeki bölümler:
 1. Ortak ilkel tipler · 2. Mesaj zarfı ve `MsgMap` · 3. Capture · 4. Export · 5. History/Storage · 6. Settings & Presets · 7. Hatalar · 8. Batch · 9. Editor/Annotation · 10. Diff/Evidence/BugReport · 11. Integrations · 12. Filename template grameri · 13. Public API · 14. Ek tipler ve genişletmeler (04–14'ten gelen)
 
@@ -103,7 +105,6 @@ export interface MsgMap {
   'offscreen.pdf':       { req: PdfBuildRequest;        res: { ref: BlobRef; pages: number } };
   'offscreen.thumbnail': { req: { src: BlobRef; maxSize: number }; res: { ref: BlobRef } };
   'offscreen.crop':      { req: { src: BlobRef; rect: Rect /*DevicePx*/ }; res: { ref: BlobRef } };
-  'offscreen.redact':    { req: { src: BlobRef; rects: Rect[] /*DevicePx*/; color: string; label?: string }; res: { ref: BlobRef } };
   'offscreen.ocr':       { req: OcrRequest;             res: OcrResult };
   'offscreen.diff':      { req: DiffRequest;            res: DiffResult };
   'offscreen.zip':       { req: ZipRequest;             res: { ref: BlobRef } };
@@ -127,6 +128,10 @@ export interface MsgMap {
   'history.recapture':{ req: { id: Id; overrides?: Partial<CaptureRequest> }; res: { jobId: Id } };
   'history.stats':    { req: void;                      res: StorageStats };
   'history.clear':    { req: { olderThan?: IsoDate };   res: { deleted: number } };
+  // ---- UI → SW : editor  (uygulandı — 05 §13)
+  'editor.save':      { req: { captureId: Id; doc: EditorDocument; flattened: { dataUrl: string; mime: string }; saveAsNew: boolean };
+                        res: { captureId: Id; createdNewRecord: boolean } };
+  'editor.load':      { req: { captureId: Id };         res: EditorDocument | null };
   'settings.get':     { req: void;                      res: Settings };
   'settings.set':     { req: { patch: DeepPartial<Settings> }; res: Settings };
   'settings.reset':   { req: void;                      res: Settings };
@@ -780,7 +785,7 @@ export interface BatchControl {
   windowSize?: Size;                     // batch penceresi boyutu (viewport sabitleme)
   stopOnError: boolean;                  // false
   fallbackToFullPage: boolean;            // selector yoksa fullPage'e düş
-  pdfChunkSize: number;                   // combined PDF parça boyutu, varsayılan 100
+  pdfChunkSize: number;                   // combined PDF parça boyutu, varsayılan 200
 }
 export type BatchStatus = 'queued' | 'running' | 'paused' | 'completed' | 'completedWithErrors' | 'cancelled' | 'failed';
 export interface BatchJob {
@@ -1032,8 +1037,6 @@ export interface EditorSettings {
 // Settings.editor: EditorSettings
 // EditorDocument.viewportOffset?: Point ; EditorDocument.zoom?: number  (oturum durumu)
 // IDB store `editorDocs` (key: captureId) → EditorDocument                                  (05 §13, 07 §2)
-// MsgMap: + 'offscreen.redact': { req: { src: BlobRef; rects: Rect[] /*DevicePx*/; color: string; label?: string }; res: { ref: BlobRef } }  (05 §5.2)
-
 // ---- 06: Batch
 // BatchJobInput.qa?: { enabled: boolean; thresholdPct: Percent; baselineTag: string /* 'baseline' */ }   (09 §13)
 // BatchControl.fallbackToFullPage: boolean (selector bulunamazsa fullPage'e düş; varsayılan false)       (06 §3)

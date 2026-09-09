@@ -160,6 +160,21 @@ const FEATURE_PERMISSIONS: Record<FeatureKey, { permissions: string[]; origins: 
 - Blur/pixelate için minimum güvenli değerler: blur ≥ 12 px, pixelate blok ≥ 16 px önerilir; daha düşükte uyarı rozeti. (`REQ-SEC-085`)
 - Redact rengi `#000` varsayılan, `#fff` ve özel renk; desen yok (desen geri analiz kolaylaştırır). (`REQ-SEC-086`)
 
+### 8.1 Uygulama durumu (2026-09-09)
+
+> Bu bölümün büyük kısmı hâlâ **hedef**tir. Aşağıdaki fark listesi, mevcut sürümün gerçekte ne garanti ettiğini söyler.
+
+| Gereksinim | Durum | Not |
+|---|---|---|
+| `REQ-SEC-080` blur/pixelate uyarısı | **Uygulandı** | Araç seçilince araç çubuğunun altında sarı uyarı şeridi; tek seferlik değil, araç seçili olduğu sürece görünür. |
+| `REQ-SEC-081` yıkıcı redact commit | **Uygulanmadı** | Redact şu an opak siyah bir **katman**dır; base bitmap değişmez ve katman taşınabilir/silinebilir. Kaydedilen PNG düzleştirildiği için dışa aktarılan dosyada bölge örtülüdür, ancak `EditorDocument` içinde katman olarak durur ve orijinal blob silinmez. Gerçek bir gizlilik garantisi olarak sunulmamalıdır. |
+| `REQ-SEC-082` orijinali silme sorusu | **Uygulanmadı** | Kaydetme her zaman yeni kayıt üretir (`source.editedFrom`); orijinal korunur ve sorulmaz. |
+| `REQ-SEC-083` thumbnail yenileme | **Kısmi** | `makeThumbnail` bağımlılığı varsayılan olarak no-op'tur; klon orijinalin thumbnail'ini devralır. **Redact edilen bölge eski thumbnail'de görünmeye devam eder.** |
+| `REQ-SEC-085` minimum güvenli değerler | **Uygulanmadı** | Blur `radiusPx: 16` (Fabric'e `0.16` oranı olarak geçer), pixelate `blockPx: 12`. Uyarı rozeti yok ve değerler kullanıcı tarafından ayarlanamaz. |
+| `REQ-SEC-086` redact rengi | **Kısmi** | `#000` sabittir; renk seçimi bilinçli olarak devre dışıdır. |
+
+**Düzeltilen gizlilik hatası (2026-09-09).** Blur/pixelate bölgesi, oluşturulduğu andaki piksellerin bir anlık görüntüsüydü. Bölge taşındığında iki yönlü sızıntı oluşuyordu: (a) altında kalan orijinal içerik yeniden açığa çıkıyor, (b) gizlenmesi istenen içeriğin hafifçe bulanıklaştırılmış bir **kopyası** kullanıcının hiç bakmadığı yeni konuma taşınıyordu. Bölge artık her taşıma/boyutlandırmada yeni konumundaki içerikten yeniden kesiliyor (`05-editor.md §5`), ve bu davranış `test/e2e/editor.spec.ts` içinde regresyon testiyle korunuyor.
+
 ---
 
 ## 9. Telemetri, Crash Raporları, Cloud (`REQ-SEC-090`…`097`)

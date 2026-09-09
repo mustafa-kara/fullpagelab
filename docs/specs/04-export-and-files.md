@@ -10,7 +10,7 @@
 
 ### 1.1 Girdi/çıktı
 - Girdi: `ExportRequest { captureId, plan: ExportPlan, stripIndex?, editedRef? }` ya da capture sonunda `CaptureCoordinator` tarafından `CaptureRecord` + `CaptureRequest.export`.
-- Kaynak görüntü seçimi: `editedRef` varsa o; yoksa `CaptureRecord.files` içinde `role:'edited'` (en yeni) → `'full'` → `'strip'[]`. (Karar: editör kaydı varsa export varsayılan olarak düzenlenmiş halidir; UI'da "Orijinali dışa aktar" seçeneği.)
+- Kaynak görüntü seçimi: `editedRef` varsa o; yoksa `CaptureRecord.files` içinde `role:'edited'` (en yeni) → `'full'` → `'strip'[]`. (Karar: editör kaydı varsa export varsayılan olarak düzenlenmiş halidir; UI'da "Orijinali dışa aktar" seçeneği.) **Uygulama durumu (2026-09-09):** öncelik sırası `export/pipeline.ts` içinde uygulandı ve result görüntüleyicisi de aynı sırayı izler; "Orijinali dışa aktar" seçeneği henüz yoktur — orijinale ancak `source.editedFrom` ile işaret edilen kayıt üzerinden ulaşılır.
 - Çıktı: `ExportResult { files[], warnings[] }`.
 
 ### 1.2 Hedef sırası (deterministik)

@@ -2,6 +2,8 @@
 
 > Bu doküman uzantının **Manifest V3** mimarisini, bileşenlerini, mesajlaşma protokolünü, capture job yaşam döngüsünü, depolama katmanlarını, izin modelini, build/tooling ve repo yapısını tanımlar. Veri tipleri için `13-data-contracts.md`, capture algoritmaları için `03-capture-engine.md` esastır.
 
+> **Uygulama durumu (2026-08-21):** Bu dosya hedef mimariyi tanımlar. Mevcut çalışan dilim; `fullPage` ve `visible` yakalama, sonuç önizlemesi, kullanıcı onaylı PNG/JPEG/WebP/PDF dışa aktarımı, temel yerel sonuç saklama, onboarding, `Alt+Shift+V` görünen alan komutu ve sayfa bağlamındaki tek **Tam sayfayı yakala** sağ tık eylemidir. Selection, element, scroll container, all-tabs, side panel, gelişmiş History, batch, editör, OCR/diff ve entegrasyon bileşenleri hedef mimaridir; tamamlanmış kabul edilmez.
+
 ---
 
 ## 1. Tasarım İlkeleri
@@ -71,8 +73,8 @@ Tek orchestrator. Kendi içinde hiçbir ağır işlem yapmaz; tile'ları alır (
 |---|---|
 | `CaptureCoordinator` | `CaptureJob` state machine (bkz. §4). Backend seçer, CS ile konuşur, tile'ları offscreen'e akıtır. |
 | `BackendRegistry` | `VisibleTabBackend` (varsayılan) ve `DebuggerBackend` (sadece `cdp` build varyantı). Ortak arayüz `CaptureBackend`. |
-| `CommandRouter` | `chrome.commands` kısayolları → aksiyon. |
-| `ContextMenuController` | Sağ tık menüsü (page/selection/link/image/frame bağlamları). |
+| `CommandRouter` | `chrome.commands` kısayolları → aksiyon. Şu anda yalnız `capture-visible` (`Alt+Shift+V`) kayıtlıdır. |
+| `ContextMenuController` | Sağ tık menüsü. Şu anda yalnız `page` bağlamındaki tam sayfa yakalama eylemi kayıtlıdır; diğer bağlamlar gelecek kapsamındadır. |
 | `ExportPipeline` | Result → format (PNG/JPEG/WebP/PDF/...) → hedef (download/clipboard/history/integration). Offscreen ile konuşur. |
 | `DownloadManager` | `chrome.downloads` sarmalayıcı; filename template çözümü; conflict policy; sub-folder. |
 | `HistoryService` | Dexie üzerinden CRUD, arama, kota yönetimi, thumbnail. SW ve extension page'ler aynı DB'ye erişebilir; yazma **sadece SW** üzerinden (Karar). |
@@ -87,7 +89,7 @@ Tek orchestrator. Kendi içinde hiçbir ağır işlem yapmaz; tile'ları alır (
 
 ### 2.2 Content Script (`src/content/`)
 - **Enjeksiyon:** Statik `content_scripts` **kullanılmaz** (Karar). `src/content/page-agent.ts`, build sırasında extension kökünde deterministik `content/page-agent.js` çıktısına bundle edilir; çözülmemiş import bırakan build başarısızdır. CS, ihtiyaç anında `chrome.scripting.executeScript({target:{tabId, allFrames?}, files:['content/page-agent.js']})` ile enjekte edilir (activeTab ile uyumlu). İdempotent: `window.__ssx_agent_v1` guard'ı; ikinci enjeksiyon sadece "ping" döner.
-- **Iletişim:** `chrome.runtime.connect({name:'page-agent:<jobId>'})` ile Port; Port kopması = job iptal/SW restart sinyali.
+- **İletişim:** `chrome.runtime.connect({name:'page-agent:<jobId>'})` ile Port; Port kopması = job iptal/SW restart sinyali.
 - **Modüller:** `PageScanner` (metrikler, scroll container'lar, fixed/sticky elementler, iframe'ler), `PagePreparer` (scrollbar gizleme, animasyon durdurma, lazy-load tetikleme, smart-hide), `Scroller` (adım adım scroll + settle bekleme), `FixedElementManager`, `ElementPicker` (hover highlight + seçim), `SelectionOverlay` (dikdörtgen seçim), `ProgressOverlay` (Shadow DOM), `Restorer`.
 - **Main-world script** (`content/console-tap.js`): sadece Bug Report modunda `world:'MAIN'` ile enjekte edilir; `console.error/warn` ve `window.onerror/unhandledrejection`'ı yakalayıp `window.postMessage` ile isolated world'e iletir.
 - CS **hiçbir zaman** tile görüntüsü tutmaz; sadece metrik ve komut.
@@ -107,14 +109,14 @@ Tek orchestrator. Kendi içinde hiçbir ağır işlem yapmaz; tile'ları alır (
 ### 2.4 Extension Pages (`src/pages/`)
 | Sayfa | Amaç |
 |---|---|
-| `popup.html` | Hızlı capture menüsü (Full page / Visible / Selection / Element / Scrollable area / All tabs / Delay), preset seçici, son 3 capture, ayarlara link. |
+| `popup.html` | Hızlı yakalama menüsü. Şu anda yalnız Full page ve Visible aktiftir; uygulanmayan modlar kullanıcıya sunulmaz. |
 | `sidepanel.html` | Popup'ın kalıcı versiyonu + capture sonrası hızlı önizleme (Chrome ≥ 114 `chrome.sidePanel`). |
 | `result.html` | Capture sonucu + **editör** + export paneli. Her capture yeni sekmede açılır (ayar: sekme / side panel / sadece indir). |
 | `history.html` | Galeri, filtre/arama, bulk işlemler, recapture, compare'e gönder. |
 | `compare.html` | Version compare + pixel diff görünümü, timeline. |
 | `batch.html` | URL batch oluşturma/izleme, loglar, yeniden çalıştırma. |
 | `options.html` | Tüm ayarlar, presetler, entegrasyonlar, izinler, veri yönetimi. |
-| `onboarding.html` | İlk kurulum: kısayol, izinler, gizlilik açıklaması. |
+| `onboarding.html` | İlk kurulum: ürün tanıtımı, yerel gizlilik açıklaması, sabitleme ipucu ve yakalanabilir örnek sayfaya yönlendirme. |
 
 Sayfalar Preact ile yazılır; ortak UI kiti `src/ui/`.
 
@@ -256,10 +258,7 @@ interface CaptureBackend {
   "action": { "default_popup": "popup.html", "default_icon": {...} },
   "side_panel": { "default_path": "sidepanel.html" },
   "commands": {
-    "capture-full-page": { "suggested_key": {"default":"Alt+Shift+P"}, "description":"__MSG_cmdFullPage__" },
-    "capture-visible":   { "suggested_key": {"default":"Alt+Shift+V"}, "description":"__MSG_cmdVisible__" },
-    "capture-selection": { "suggested_key": {"default":"Alt+Shift+S"}, "description":"__MSG_cmdSelection__" },
-    "capture-element":   { "description":"__MSG_cmdElement__" }   // kısayolu kullanıcı atar (max 4 suggested)
+    "capture-visible": { "suggested_key": {"default":"Alt+Shift+V"}, "description":"__MSG_cmdVisible__" }
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.atlassian.net https://api.linear.app https://slack.com https://api.notion.com https://api.trello.com https://api.github.com https://www.googleapis.com"
@@ -361,14 +360,18 @@ fullpagelab/
 │  │  ├─ index.ts  offscreen.html
 │  │  └─ workers/ {stitch.worker.ts, encode.worker.ts, pdf.worker.ts, ocr.worker.ts, diff.worker.ts, zip.worker.ts, thumb.worker.ts}
 │  ├─ pages/ {popup, sidepanel, result, history, compare, batch, options, onboarding}/ (index.html, main.tsx, *.module.css)
-│  ├─ editor/                     # Fabric tabanlı editör çekirdeği (pages/result kullanır)
+│  ├─ editor/                     # Fabric'e bağlı, tarayıcıya özgü katman (pages/result lazy import eder)
+│  │  ├─ editor-core.ts           # Fabric canvas sahibi, araç sevki, olaylar  (05 §2.2)
+│  │  ├─ fabric-bridge.ts         # Annotation → Fabric option çantası
+│  │  └─ index.ts                 # createEditor(): dinamik import ile chunk ayrımı
 │  ├─ ui/                         # ortak bileşenler, tokens.css, icons
 │  ├─ shared/
 │  │  ├─ messages.ts              # MsgMap, Msg/Reply, typed send/connect helpers
 │  │  ├─ types/ (capture.ts, export.ts, history.ts, settings.ts, batch.ts, preset.ts, errors.ts)
 │  │  ├─ db/ (schema.ts, dexie.ts, opfs.ts)
 │  │  ├─ i18n.ts  log.ts  ids.ts  geometry.ts  env.ts
-│  └─ lib/ (image/, pdf/, ocr/, diff/, zip/, hash/, template/)   # saf, DOM-bağımsız yardımcılar (unit test yoğun)
+│  └─ lib/ (image/, pdf/, ocr/, diff/, zip/, hash/, template/, editor/)   # saf, DOM-bağımsız yardımcılar (unit test yoğun)
+│     └─ editor/ (annotation, arrow, command-stack, document, flatten, geometry, viewport).ts
 ├─ test/ {unit/, e2e/, fixtures/sites/, helpers/}
 └─ scripts/ {build-zip.ts, gen-icons.ts, check-manifest.ts}
 ```

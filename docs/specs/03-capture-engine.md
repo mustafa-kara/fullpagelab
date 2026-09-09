@@ -2,6 +2,8 @@
 
 > Capture motorunun tüm modları, algoritmaları, kenar durumları ve kabul kriterleri. Tipler `13-data-contracts.md §3`, bileşen yerleşimi `02-architecture.md`. Gereksinim ID önek: `REQ-CAP-*`.
 
+> **Uygulama durumu (2026-08-21):** Üretim arayüzünde çalışan modlar `fullPage` ve `visible`dır. Selection, element/selector, scroll container, iframe, infinite scroll ve all-tabs bölümleri gelecek milestone gereksinimleridir. Tam sayfa tetikleyicileri popup ve `page` bağlamındaki sağ tık eylemidir; varsayılan tam sayfa klavye kısayolu yoktur. Görünen alan için `Alt+Shift+V` aktiftir.
+
 İçindekiler: 1 Genel akış · 2 Tetikleyiciler (popup/kısayol/context menu/timer) · 3 Visible · 4 Full page (scroll+stitch) · 5 Selection · 6 Fixed/sticky yönetimi · 7 Element / Selector / Scroll container · 8 Lazy-load · 9 iframe · 10 Çok uzun sayfalar & tiling · 11 Infinite scroll · 12 All tabs · 13 Progress/cancel/overlay · 14 DPR/zoom/RTL/diğer kenar durumları · 15 DebuggerBackend · 16 Restore garantisi · 17 Kabul kriterleri
 
 ---
@@ -37,8 +39,8 @@ await chrome.scripting.executeScript({ target:{tabId, frameIds:[0]}, files:['con
 | Tetik | Mekanizma | Not |
 |---|---|---|
 | Toolbar ikonu | `action.default_popup` — popup'ta mod seçimi | Popup açıkken capture başlarsa popup kapanır; progress overlay sayfada görünür |
-| Kısayol | `chrome.commands.onCommand` (`capture-full-page` Alt+Shift+P, `capture-visible` Alt+Shift+V, `capture-selection` Alt+Shift+S, `capture-element` atanabilir) | En fazla 4 `suggested_key`; diğerleri `chrome://extensions/shortcuts`. Options'ta mevcut atamaları göster + o sayfaya link. |
-| Sağ tık | `chrome.contextMenus` (`contexts: ['page','selection','link','image','frame','action']`) | Menü ağacı: *Capture full page / visible / selection / element / this frame (frame bağlamı) / this image (image bağlamı → element modu, hedef img) / Delayed capture (3s/5s/10s) / Open history* |
+| Kısayol | `chrome.commands.onCommand` (`capture-visible`, varsayılan `Alt+Shift+V`) | Şu anda yalnız görünen alan komutu kayıtlıdır. Tam sayfa için varsayılan `Alt+Shift+P` komutu yoktur. Gelecek komutlar ancak ilgili mod çalışır hâle geldiğinde manifestte açılır. |
+| Sağ tık | `chrome.contextMenus` (`contexts: ['page']`) | Şu anda yalnız *Tam sayfayı yakala* eylemi vardır. Visible/selection/element/frame/delay/history menüleri gelecek kapsamındadır ve kullanıcıya gösterilmez. |
 | Side panel | `sidepanel.html` | Kalıcı; capture sonrası önizleme |
 | Timer | `CaptureOptions.delayMs` | Countdown overlay (Shadow DOM), `Esc` iptal. Delay boyunca kullanıcı menü/hover açabilir; capture delay bitince başlar |
 | Batch/API/Monitor | programatik | `trigger` alanı ile işaretlenir |
@@ -48,7 +50,7 @@ await chrome.scripting.executeScript({ target:{tabId, frameIds:[0]}, files:['con
 ---
 
 ## 3. Visible Capture (`REQ-CAP-010`)
-1. Validate → (opsiyonel) CS enjekte (scrollbar gizleme / smart hide / delay istenmişse; aksi halde CS gerekmez — chrome:// sayfaları için önemli).
+1. Validate → erişilebilen normal HTTP(S) sayfalarında CS enjekte ederek scrollbar/animasyon/fixed katman hazırlığını **best-effort** uygula. Hazırlık başarısızsa visible yakalama yine denenir; restricted sayfalarda CS olmadan devam edilir.
 2. `chrome.tabs.captureVisibleTab(windowId,{format:'png'})` → dataURL.
 3. `dprMode` / `zoomHandling` uygula (14).
 4. Result: tek tile = sonuç; offscreen'de sadece (gerekirse) ölçek/metadata.
@@ -224,7 +226,7 @@ Mod `infinite`:
 ---
 
 ## 13. Progress, Cancel, Overlay (`REQ-CAP-110`…`115`)
-- CS `ProgressOverlay` (closed Shadow DOM, `position:fixed; top:16px; right:16px; z-index:2147483647`), capture **sırasında görünür kalır ama tile'larda görünmemeli** → her `captureVisibleTab` öncesi overlay `visibility:hidden` + 1 raf, sonrası geri. (Alternatif: overlay'i hiç sayfada göstermeyip `chrome.action.setBadgeText` + bildirim — Karar: ikisi birlikte; badge `"37%"`.)
+- CS `ProgressOverlay` (closed Shadow DOM, `position:fixed; top:16px; right:16px; z-index:2147483647`), capture **sırasında görünür kalır ama tile'larda görünmemeli** → her `captureVisibleTab` öncesi overlay `visibility:hidden` yapılır ve iki temiz compositor frame beklenir; capture sonrasında görünürlük geri alınır. Action badge ilerlemeyi ayrıca gösterebilir.
 - Overlay içeriği: faz metni, `done/total`, ETA, **Cancel** (her zaman), **Stop** (infinite). `Esc` = Cancel (CS keydown listener, capture boyunca).
 - İptal: SW `capture.cancel` → CS `agent.abort` → restore → tiles sil → `job.cancelled`. İptal sonrası kısmi sonuç **sunulmaz** (Karar; basitlik); ancak `E_AGENT_DISCONNECTED`/timeout'ta kısmi stitch sunulur ("Partial").
 - Popup kapandığında job devam eder (SW'de). Popup/side panel yeniden açılınca `capture.listActive` ile progress gösterir.
@@ -239,6 +241,7 @@ Mod `infinite`:
 - **RTL** sayfalar: `scrollX` negatif olabilir; `origin.x` hesapları `Math.abs` yerine `scrollingElement.scrollLeft` gerçek değerleriyle; yatay overflow planı sağdan sola.
 - **`overflow-anchor`/scroll anchoring:** scroll sırasında içerik yukarıdan eklenirse kayma; `overflow-anchor:none !important` inject edilir.
 - **Scrollbar:** `::-webkit-scrollbar{display:none!important}` + `html{scrollbar-width:none!important}` inject; overlay scrollbar'lar (macOS) zaten yakalanmaz. Scrollbar gizlenince layout genişler (`innerWidth` değişir) → scan **scrollbar gizlendikten sonra** yapılır.
+- Scrollbar stili ana belgeyle birlikte erişilebilen same-origin iframe belgelerinin `head` bölümüne de eklenir. Restore sırasında ana belge ve her iframe için eklenen style düğümleri ayrı ayrı kaldırılır; cross-origin frame erişim hataları yakalamayı durdurmaz.
 - **Animasyon/transition:** `*,*::before,*::after{animation-play-state:paused!important; transition:none!important; caret-color:transparent!important}`; `<video>` pause (ayar), GIF'ler durdurulamaz (bilinen kısıt). `prefers-reduced-motion` etkisiz.
 - **Hover state:** overlay `pointer-events` sayesinde hover tetiklemez; fare sayfa üzerindeyse hover efektleri yakalanabilir (bilinen kısıt; delay+hover = özellik).
 - **Focus/caret:** `caret-color:transparent`; seçili metin (selection) highlight'ı kalır → `document.getSelection().removeAllRanges()` yapılmaz (kullanıcı seçimi kanıt olabilir) — Karar: dokunulmaz.
